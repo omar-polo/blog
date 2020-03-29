@@ -90,7 +90,6 @@
   (let [in (io/file (str "resources/" dir "/"))
         out         (str "resources/out/" dir "/")]
     (doseq [f (->> in file-seq (filter #(.isFile %)))]
-      (println "copying" (.getName f) "to" (str out (.getName f)))
       (io/copy f (io/file (str out (.getName f)))))))
 
 (comment
