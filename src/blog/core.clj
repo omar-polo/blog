@@ -134,7 +134,7 @@
 (core/deftask clean
   "clean the output directory"
   []
-  (sh "rm" "-rm" "resources/out/"))
+  (sh "rm" "-rf" "resources/out/"))
 
 (core/deftask deploy
   "Copy the files to the server"
