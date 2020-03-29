@@ -39,7 +39,7 @@
   [:article
    [:header
     [:h1 (if title-with-link?
-           [:a {:href (str "post/" slug ".html")} title]
+           [:a {:href (str "/post/" slug ".html")} title]
            title)]
     [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
