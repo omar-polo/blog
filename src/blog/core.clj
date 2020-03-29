@@ -131,6 +131,11 @@
                     {:port 3000
                      :join? false})))
 
+(core/deftask clean
+  "clean the output directory"
+  []
+  (sh "rm" "-rm" "resources/out/"))
+
 (core/deftask deploy
   "Copy the files to the server"
   []
