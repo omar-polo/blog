@@ -1,6 +1,7 @@
 (ns blog.core
   (:require [blog.time :as time]
             [blog.templates :as templates]
+            [blog.rss :as rss]
             [boot.core :as core]
             [boot.task.built-in :as task]
             [ring.adapter.jetty :as jetty]
@@ -83,6 +84,10 @@
   (spit (str "resources/out/tag/" tag ".html")
         (templates/tag-page tag posts)))
 
+(defn render-rss []
+  (spit (str "resources/out/rss.xml")
+        (rss/feed @posts)))
+
 (defn copy-dir
   "Copy the content of resources/`dir` to resources/out/`dir`, assuming
   these two directories exists.  It does not copy recursively."
@@ -110,6 +115,7 @@
   []
   (create-dirs!)
   (copy-assets)
+  (render-rss)
   (render-post-list)
   (doseq [p @posts]
     (render-post p))
