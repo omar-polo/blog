@@ -37,7 +37,7 @@
             :tags #{:OpenBSD :linux}
             :short "Porting BSD behaviours to linux"})
 
-(add-post! {:title "CSS splites with awk and ImageMagick"
+(add-post! {:title "CSS sprites with awk and ImageMagick"
             :slug "css-sprites-awk-imagemagick"
             :date "2019/08/08"
             :tags #{:css :awk}
