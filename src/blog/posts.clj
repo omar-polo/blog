@@ -1,3 +1,9 @@
+(add-post! {:title "$HOME as a git repo"
+            :slug "home-as-git-repo"
+            :date "2020/04/02"
+            :tags #{:git}
+            :short "How do you track dotfiles?"})
+
 (comment
   (add-post! {:title "Blogging with clojure"
               :slug "blogging-with-clojure"
