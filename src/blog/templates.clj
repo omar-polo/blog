@@ -31,7 +31,7 @@
     (header d)
     [:main body]
     [:footer
-     [:p "Blog powered by "
+     [:p "Blog proudly generated with "
       [:code "(clojure)"]]]]))
 
 (defn post-fragment
