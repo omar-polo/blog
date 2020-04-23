@@ -1,3 +1,9 @@
+(add-post! {:title "cgit & gitolite"
+            :slug "cgit-gitolite"
+            :date "2020/04/22"
+            :tags #{:git}
+            :short "Custom git server with web interface & users management"})
+
 (add-post! {:title "$HOME as a git repo"
             :slug "home-as-git-repo"
             :date "2020/04/02"
