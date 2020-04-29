@@ -1,3 +1,9 @@
+(add-post! {:title "Finite State Machine in Godot"
+            :slug "finite-automata-godot"
+            :date "2020/04/29"
+            :tags #{:godot}
+            :short "Did I mention how I love finite automata?"})
+
 (add-post! {:title "cgit & gitolite"
             :slug "cgit-gitolite"
             :date "2020/04/22"
