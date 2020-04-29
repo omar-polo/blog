@@ -1,7 +1,7 @@
 Recently, a friend of mine introduced me to the wonderful world of
 game development with Godot.
 
-During the initial (and still ongoing btw) enemy IA implementation, I
+During the initial (and still ongoing btw) enemy AI implementation, I
 searched a bit on how to implement a state machine in gdscript.  Now,
 a state machine isn't something difficult to do, and neither
 error-prone, but I wanted to know if there was some idiomatic way of
@@ -12,7 +12,7 @@ matters to us in games) is a way to manage the state of an actor.  It
 can be the player, or an enemy, or even some other entity (such as an
 object that can receive inputs).  A state machine is a collection of
 states, only one of which can be enabled and receive inputs.  We can,
-of course, change the state whenever we want.
+of course, change to another state whenever we want.
 
 For instance, let's say that we have a player that can run and dash,
 if we model the player with a state machine we can define two state,
@@ -25,7 +25,7 @@ default but if they see a player they start following it, and thus
 they change their state to `Chase`.  Then, if the player dies, or it's
 too far away, they can switch back to `Wandering`.
 
-There may be other way to manage the state, but I do really like the
+There may be other ways to manage states, but I do really like the
 state machine abstraction (not only in games), and the code is pretty
 clean and simple to maintain, so...
 
@@ -94,6 +94,7 @@ func _enter_state() -> void:
   if DEBUG:
     print("entering state ", state_name)
   state.state_machine = self
+  state.enter()
 
 
 # proxy game loop function to the current state
