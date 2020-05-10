@@ -100,13 +100,6 @@ p.subtitle {
 
 body main {
   margin: 0 auto;
-}
-
-body:not(.article) main {
-  max-width: 550px;
-}
-
-body.article main {
   max-width: 960px;
 }
 
