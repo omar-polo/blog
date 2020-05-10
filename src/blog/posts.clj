@@ -1,3 +1,9 @@
+(add-post! {:title "Logstash + jdbc = role does not exists"
+            :slug "logstash-jdbc-role-does-not-exists"
+            :date "2020/05/10"
+            :tags #{:logstash :postgresql}
+            :short "TL;DR use the connection string properly"})
+
 (add-post! {:title "Finite State Machine in Godot"
             :slug "finite-automata-godot"
             :date "2020/04/29"
