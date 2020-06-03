@@ -1,3 +1,9 @@
+(add-post! {:title "Updating the ssh key to ed25519"
+            :slug  "upgrading-ssh-key-ed25519"
+            :date  "2020/06/03"
+            :tags  #{:ssh}
+            :short "no TL;DR this time"})
+
 (add-post! {:title "Logstash + jdbc = role does not exists"
             :slug "logstash-jdbc-role-does-not-exists"
             :date "2020/05/10"
