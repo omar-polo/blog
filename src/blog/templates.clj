@@ -12,7 +12,8 @@
     [:nav
      [:ul
       (link-item {:url "/", :text "Home"})
-      (link-item {:url "/tags.html", :text "All Tags"})]]
+      (link-item {:url "/tags.html", :text "All Tags"})
+      (link-item {:url "https://git.omarpolo.com", :text "Git repos"})]]
     [:div
      [:h1 [:a {:href "/"} "yumh"]]
      [:p "writing about things, sometimes."]]]))
