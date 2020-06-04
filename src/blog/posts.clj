@@ -1,3 +1,9 @@
+(add-post! {:title "Threading macros for elisp"
+            :slug  "elisp-threading-macros"
+            :date  "2020/06/04"
+            :tags  #{:elisp}
+            :short "(-> '->> symbol-name (concat \" is so cool\"))"})
+
 (add-post! {:title "Updating the ssh key to ed25519"
             :slug  "upgrading-ssh-key-ed25519"
             :date  "2020/06/03"
