@@ -90,7 +90,7 @@
   [tag posts]
   (with-page {:title (str "Posts tagged with #" tag)
               :class "tag"}
-    [:h2 "Post tagged with " [:code "#" tag]]
+    [:h2 "Posts tagged with " [:code "#" tag]]
     (map (partial post-fragment {:title-with-link? true})
          (->> posts
               (sort-by :date)
