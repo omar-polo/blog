@@ -33,7 +33,12 @@
     [:main body]
     [:footer
      [:p "Blog proudly generated with "
-      [:code "(clojure)"]]]]))
+      [:code "(clojure)"]]]
+    [:noscript
+     [:img {:src "https://goatcounter.omarpolo.com/count?p=/test-img"}]]
+    [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
+              :async true
+              :src "//goatcounter.omarpolo.com/count.js"}]]))
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
