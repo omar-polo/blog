@@ -2,7 +2,8 @@
             :slug  "elisp-threading-macros"
             :date  "2020/06/04"
             :tags  #{:elisp}
-            :short "(-> '->> symbol-name (concat \" is so cool\"))"})
+            :short "(-> '->> symbol-name (concat \" is so cool\"))"
+            :toot  "https://europecom.net/notice/9vm27kyIDp6oe8h3su"})
 
 (add-post! {:title "Updating the ssh key to ed25519"
             :slug  "upgrading-ssh-key-ed25519"

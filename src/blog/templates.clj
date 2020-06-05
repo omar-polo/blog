@@ -37,16 +37,23 @@
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
-   {:keys [title date slug tags short body], :as post}]
+   {:keys [title date slug tags short body toot], :as post}]
   [:article
    [:header
-    [:h1 (if title-with-link?
-           [:a {:href (str "/post/" slug ".html")} title]
-           title)]
+    [(if full?
+       :h1
+       :h2.fragment)
+     (if title-with-link?
+       [:a {:href (str "/post/" slug ".html")} title]
+       title)]
     [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
-                   tags)]]
+                   tags)]
+    (when toot
+      [:p [:a {:href   toot,
+               :target "_blank"
+               :rel    "noopener"} "Comments over ActivityPub"]])]
    [:section
     (if full?
       (markdown->hiccup default-config body)

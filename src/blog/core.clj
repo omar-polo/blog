@@ -16,14 +16,15 @@
               out (io/output-stream (io/file dst))]
     (io/copy in out)))
 
-(defn post [{:keys [slug title short date tags]}]
+(defn post [{:keys [slug title short date tags toot]}]
   (let [f (io/resource (str "posts/" slug ".md"))]
-    {:slug slug
+    {:slug  slug
      :title title
      :short short
-     :date (time/parse date)
-     :body (slurp f)
-     :tags tags}))
+     :date  (time/parse date)
+     :body  (slurp f)
+     :tags  tags
+     :toot  toot}))
 
 (def per-tag (atom {}))
 (def posts (atom []))
@@ -153,6 +154,7 @@
 
 (comment
   (build)
+  (clean)
   (serve)
   (stop-jetty)
 )

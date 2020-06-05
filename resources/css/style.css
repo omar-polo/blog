@@ -107,6 +107,26 @@ article {
   margin-bottom: 30px;
 }
 
+h2::before {
+  content: "## ";
+}
+
+h3::before {
+  content: "### ";
+}
+
+h4::before {
+  content: "#### ";
+}
+
+h5::before {
+  content: "##### ";
+}
+
+h6::before {
+  content: "###### ";
+}
+
 h1 {
   position: relative;
   display: table-cell;
@@ -118,7 +138,7 @@ h1 {
 }
 
 /* a cool hack stolen from blog.soykaf.com */
-h1::after {
+h1::after, h2.fragment::after {
   /* should be long enough */
   content: '=================================================================';
   position: absolute;
@@ -127,13 +147,33 @@ h1::after {
   white-space: nowrap;
 }
 
+h2.fragment {
+  position: relative;
+  display: table-cell;
+  padding: 20px 0 20px;
+  margin: 0;
+  overflow: hidden;
+}
+
+h2.fragment::after {
+  content: '-----------------------------------------------------------------';
+}
+
+h2.fragment::before {
+  content: '';
+}
+
 h1::after, h2::before, h3::before, h4::before, h5::before, h6::before {
   /* color: hsla(0, 0%, 36%, 1); */
   color: #242424;
 }
 
-h1>a {
+h1>a, h2.fragment>a {
   text-decoration: none;
+}
+
+h1>a:hover, h2.fragment>a:hover {
+  text-decoration: underline;
 }
 
 h2, h3, h4, h5, h6 {
@@ -158,26 +198,6 @@ h5 {
 
 h6 {
   font-size: 100%;
-}
-
-h2::before {
-  content: "## ";
-}
-
-h3::before {
-  content: "### ";
-}
-
-h4::before {
-  content: "#### ";
-}
-
-h5::before {
-  content: "##### ";
-}
-
-h6::before {
-  content: "###### ";
 }
 
 ul.tags {
