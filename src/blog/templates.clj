@@ -19,13 +19,15 @@
      [:p "writing about things, sometimes."]]]))
 
 (defn with-page
-  [{:keys [title class], :as d} & body]
+  [{:keys [title class description], :as d} & body]
   (html5 {:lang "en"}
    [:head
     [:meta {:charset "utf8"}]
     [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
     [:link {:rel "shortcut icon", :href "/favicon.ico"}]
     [:link {:rel "alternative" :type "application/rss+xml" :href "https://www.omarpolo.com/rss.xml"}]
+    (when description
+      [:meta {:name "description" :content description}])
     [:title title]
     (include-css "/css/style.css")]
    [:body {:class (or class "")}
@@ -80,9 +82,10 @@
         "Older Posts »"])]))
 
 (defn post-page
-  [{:keys [title], :as post}]
+  [{:keys [title short], :as post}]
   (with-page {:title title
-              :class "article"}
+              :class "article"
+              :description short}
     (post-fragment {:full? true}
                    post)))
 
