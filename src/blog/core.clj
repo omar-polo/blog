@@ -1,15 +1,16 @@
 (ns blog.core
-  (:require [blog.time :as time]
-            [blog.templates :as templates]
-            [blog.rss :as rss]
-            [boot.core :as core]
-            [boot.task.built-in :as task]
-            [ring.adapter.jetty :as jetty]
-            [ring.middleware.resource :refer [wrap-resource]]
-            [ring.middleware.content-type :refer [wrap-content-type]]
-            [clojure.java.io :as io]
-            [clojure.java.shell :refer [sh]])
-  (:import (java.io File)))
+  (:require
+   [blog.rss :as rss]
+   [blog.templates :as templates]
+   [blog.time :as time]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.java.shell :refer [sh]]
+   [ring.adapter.jetty :as jetty]
+   [ring.middleware.content-type :refer [wrap-content-type]]
+   [ring.middleware.resource :refer [wrap-resource]])
+  (:import (java.io File))
+  (:gen-class))
 
 (defn copy-file [src dst]
   (with-open [in  (io/input-stream (io/file src))
@@ -35,7 +36,14 @@
     (doseq [t (:tags m)]
       (swap! per-tag update t conj p))))
 
-(load "posts")
+(defn load-posts! []
+  (reset! per-tag {})
+  (reset! posts [])
+  (doseq [p (-> "posts.edn"
+                io/resource
+                slurp
+                edn/read-string)]
+    (add-post! p)))
 
 (defn create-dirs! []
   (doseq [d ["resources/out"
@@ -111,7 +119,7 @@
   (copy-file "resources/favicon.ico" "resources/out/favicon.ico")
   (copy-file "resources/css/style.css" "resources/out/css/style.css"))
 
-(core/deftask build
+(defn build
   "Build the blog"
   []
   (create-dirs!)
@@ -127,7 +135,7 @@
 
 (def j (atom nil))
 
-(core/deftask serve
+(defn serve
   "Serve a preview"
   []
   (reset!
@@ -138,23 +146,34 @@
                     {:port 3000
                      :join? false})))
 
-(core/deftask clean
+(defn clean
   "clean the output directory"
   []
   (sh "rm" "-rf" "resources/out/"))
 
-(core/deftask deploy
+(defn deploy
   "Copy the files to the server"
   []
-  (sh "openrsync" "-r" "--delete" "resources/out/" "op:sites/www.omarpolo.com/"))
+  (sh "rsync" "-r" "--delete" "resources/out/" "op:sites/www.omarpolo.com/"))
 
 (defn stop-jetty []
   (.stop @j)
   (reset! j nil))
 
+(defn -main [& actions]
+  (load-posts!)
+  (doseq [action actions]
+    (case action
+      "clean"  (clean)
+      "build"  (build)
+      "deploy" (deploy)
+
+      (println "unrecognized action" action))))
+
 (comment
-  (build)
+  (load-posts!)
   (clean)
+  (build)
   (serve)
   (stop-jetty)
 )

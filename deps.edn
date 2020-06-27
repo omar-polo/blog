@@ -1,0 +1,9 @@
+{:deps {hiccup               {:mvn/version "1.0.5"}
+        ring                 {:mvn/version "1.8.0"}
+        commonmark-hiccup    {:mvn/version "0.1.0"}
+        org.clojure/data.xml {:mvn/version "0.2.0-alpha6"}}
+
+ :paths ["src" "resources"]
+
+ :aliases
+ {:act {:main-opts ["-m" "blog.core"]}}}

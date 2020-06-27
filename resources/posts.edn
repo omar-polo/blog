@@ -1,0 +1,96 @@
+[{:title "enjoying CDPATH"
+  :slug  "enjoying-cdpath"
+  :date "2020/06/27"
+  :tags  #{:sh}
+  :short "changing directory like a ninja."}
+ #_ {:title "sickforth episode 1: parsing"
+     :slug  "sickforth-episode-01-parsing"
+     :date  "2020/06/23"
+     :tags  #{:compilers :sickforth}
+     :short "You've got to start from somewhere"}
+ #_ {:title "sickforth episode 0: introduction"
+     :slug  "sickforth-episode-00-intro"
+     :date  "2020/06/23"
+     :tags  #{:compilers :sickforth}
+     :short "Let's write a compiler for an (arbitrary) subset of Forth!"}
+ #_ {:title "building FreeBSD packages with Synth"
+     :slug  "building-freebsd-packages-with-synth"
+     :date  "2020/06/13"
+     :tags  #{:FreeBSD}
+     :short "Build with ease.  Scripts included!"}
+ {:title "Threading macros for elisp"
+  :slug  "elisp-threading-macros"
+  :date  "2020/06/04"
+  :tags  #{:elisp}
+  :short "(-> '->> symbol-name (concat \" is so cool\"))"
+  :toot  "https://europecom.net/notice/9vm27kyIDp6oe8h3su"}
+ {:title "Updating the ssh key to ed25519"
+  :slug  "upgrading-ssh-key-ed25519"
+  :date  "2020/06/03"
+  :tags  #{:ssh}
+  :short "no TL;DR this time"}
+ {:title "Logstash + jdbc = role does not exists"
+  :slug  "logstash-jdbc-role-does-not-exists"
+  :date  "2020/05/10"
+  :tags  #{:logstash :postgresql}
+  :short "TL;DR use the connection string properly"}
+ {:title "Finite State Machine in Godot"
+  :slug  "finite-automata-godot"
+  :date  "2020/04/29"
+  :tags  #{:godot}
+  :short "Did I mention how I love finite automata?"}
+ {:title "cgit & gitolite"
+  :slug  "cgit-gitolite"
+  :date  "2020/04/22"
+  :tags  #{:git}
+  :short "Custom git server with web interface & users management"}
+ {:title "$HOME as a git repo"
+  :slug  "home-as-git-repo"
+  :date  "2020/04/02"
+  :tags  #{:git}
+  :short "How do you track dotfiles?"}
+ {:title "Multiplexing data in sh(1)"
+  :slug  "sh-multiplexing-data"
+  :date  "2019/10/17"
+  :tags  #{:sh}
+  :short "please put something clever here"}
+ {:title "Poor man's unbound dashboard"
+  :slug  "poor-mans-unbound-dashboard"
+  :date  "2019/10/16"
+  :tags  #{:OpenBSD :tmux}
+  :short "A little bit of bash, fifos, tmux & ttyplot"}
+ {:title "Core naming in linux"
+  :slug  "core-naming-on-linux"
+  :date  "2019/10/15"
+  :tags  #{:OpenBSD :linux}
+  :short "Porting BSD behaviours to linux"}
+ {:title "CSS sprites with awk and ImageMagick"
+  :slug  "css-sprites-awk-imagemagick"
+  :date  "2019/08/08"
+  :tags  #{:css :awk}
+  :short "I like to automatize things"}
+ {:title "Using the C preprocessors for CSS generation"
+  :slug  "cpp-css"
+  :date  "2019/03/30"
+  :tags  #{:css}
+  :short "old tools for new websites"}
+ {:title "F* on OpenBSD"
+  :slug  "fstar-openbsd"
+  :date  "2019/03/25"
+  :tags  #{:fstar :OpenBSD}
+  :short "It just works"}
+ {:title "Abbreviations in vi(1)"
+  :slug  "abbreviations-vi"
+  :date  "2018/09/14"
+  :tags  #{:vi}
+  :short "type even less"}
+ {:title "Improving maildir opening time in mutt"
+  :slug  "maildir-mutt-time"
+  :date  "2018/09/14"
+  :tags  #{:mutt}
+  :short "<code>header_cache</code> is just awesome"}
+ {:title "Spell checking in vi(1)"
+  :slug  "spell-checking-vi"
+  :date  "2018/09/08"
+  :tags  #{:vi}
+  :short "Aspell plays nice with vi."}]
