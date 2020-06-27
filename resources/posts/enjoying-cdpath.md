@@ -36,7 +36,7 @@ It will not, however, autocomplete.
 
 ### bash
 
-It will behave just as ksh.
+It will behave just like ksh.
 
 ### zsh
 
@@ -80,9 +80,9 @@ out-of-the-box.
 
 ### vi (nvi)
 
-`vi` will inherit your `$CDPATH` (make sure you're `export`ing it!).
-You can also `:set cdpath=...` if you wish.  You cannot edit a file
-like `:e games/godot/Makefile` and assume vi will open
+`vi` will inherit your `$CDPATH` (but make sure you're `export`ing
+it!).  You can also `:set cdpath=…` if you wish.  You cannot edit a
+file like `:e games/godot/Makefile` and assume vi will open
 `/usr/ports/games/godot/Makefile` though, you need first to `:cd
 games/godot` and then `:e Makefile`!
 
