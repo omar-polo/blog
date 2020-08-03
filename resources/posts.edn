@@ -1,4 +1,12 @@
-[{:title "enjoying CDPATH"
+[{:title "Localization of dates in web pages"
+  :slug  "localization-of-dates-in-web-pages"
+  :date  "2020/08/03"
+  :tags  #{:l10n}
+  :short ""
+  :music {:title "Dream in Color"
+          :by    "Grant Lee Buffalo"
+          :url   "https://www.youtube.com/watch?v=uqyduBWlmKs"}}
+ {:title "enjoying CDPATH"
   :slug  "enjoying-cdpath"
   :date "2020/06/27"
   :tags  #{:sh}
