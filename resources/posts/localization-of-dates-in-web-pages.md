@@ -33,7 +33,7 @@ have a confused user.  Your user will read phrases like:
 
 that just can't be interpreted correctly.  The user will probably
 assume that since the site is in English the date is probably in the
-format `month/day/year`, while it may be according to its locale and
+format `month/day/year`, while it may be according to his locale and
 thus be interpreted as `day/month/year`.
 
 The fundamental problem here is a lack of context between the
