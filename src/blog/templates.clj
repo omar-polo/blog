@@ -44,7 +44,7 @@
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
-   {:keys [title date slug tags short body toot], :as post}]
+   {:keys [title date slug tags short body toot music], :as post}]
   [:article
    [:header
     [(if full?
@@ -53,7 +53,13 @@
      (if title-with-link?
        [:a {:href (str "/post/" slug ".html")} title]
        title)]
-    [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)]
+    [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)
+     (if music
+       (list " while was listening to " [:a {:href   (:url music)
+                                             :target "_blank"
+                                             :rel    "noopener"}
+                                         "\"" [:em (:title music)] "\"" " by " [:em (:by music)]] ".")
+       ".")]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
                    tags)]
