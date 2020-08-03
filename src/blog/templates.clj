@@ -56,10 +56,10 @@
        title)]
     [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)
      (if music
-       (list " while was listening to " [:a {:href   (:url music)
-                                             :target "_blank"
-                                             :rel    "noopener"}
-                                         "\"" [:em (:title music)] "\"" " by " [:em (:by music)]] ".")
+       (list " while listening to " [:a {:href   (:url music)
+                                         :target "_blank"
+                                         :rel    "noopener"}
+                                     "\"" [:em (:title music)] "\"" " by " [:em (:by music)]] ".")
        ".")]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
