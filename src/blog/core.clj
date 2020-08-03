@@ -17,15 +17,10 @@
               out (io/output-stream (io/file dst))]
     (io/copy in out)))
 
-(defn post [{:keys [slug title short date tags toot]}]
-  (let [f (io/resource (str "posts/" slug ".md"))]
-    {:slug  slug
-     :title title
-     :short short
-     :date  (time/parse date)
-     :body  (slurp f)
-     :tags  tags
-     :toot  toot}))
+(defn post [{:keys [slug] :as p}]
+  (-> p
+      (assoc  :body (-> (str "posts/" slug ".md") io/resource slurp))
+      (update :date time/parse)))
 
 (def per-tag (atom {}))
 (def posts (atom []))
