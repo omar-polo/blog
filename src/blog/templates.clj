@@ -35,7 +35,8 @@
     [:main body]
     [:footer
      [:p "Blog proudly generated with "
-      [:code "(clojure)"]]]
+      [:a {:href "https://git.omarpolo.com/blog/"}
+       [:code "(clojure)"]]]]
     [:noscript
      [:img {:src "https://goatcounter.omarpolo.com/count?p=/test-img"}]]
     [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
