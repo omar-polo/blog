@@ -4,7 +4,7 @@
   :tags  #{:l10n}
   :short ""
   :music {:title "Dream in Color"
-          :by    "Grant Lee Buffalo"
+          :by    "Grant Lee Phillips"
           :url   "https://www.youtube.com/watch?v=uqyduBWlmKs"}}
  {:title "enjoying CDPATH"
   :slug  "enjoying-cdpath"
