@@ -1,4 +1,12 @@
-[{:title "Localization of dates in web pages"
+[{:title "Using IP addresses to assume the language is dumb"
+  :slug  "ip-to-assume-language-dumb"
+  :date  "2020/08/04"
+  :tags  #{:rant}
+  :short "just your daily rant"
+  :music {:title "One Morning"
+          :by    "Grant Lee Phillips"
+          :url   "https://www.youtube.com/watch?v=ClmbCOW73eo"}}
+ {:title "Localization of dates in web pages"
   :slug  "localization-of-dates-in-web-pages"
   :date  "2020/08/03"
   :tags  #{:l10n}
