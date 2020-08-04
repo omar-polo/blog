@@ -138,7 +138,7 @@
    (jetty/run-jetty (-> (fn [_] {:status 404, :body "not found"})
                         (wrap-resource "out")
                         (wrap-content-type))
-                    {:port 3000
+                    {:port 3030
                      :join? false})))
 
 (defn clean
@@ -171,4 +171,5 @@
   (build)
   (serve)
   (stop-jetty)
+  (deploy)
 )
