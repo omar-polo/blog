@@ -1,4 +1,11 @@
-[{:title "Using IP addresses to assume the language is dumb"
+[{:title "EMMS"
+  :slug  "emms"
+  :date  "2020/09/20"
+  :tags  #{:emacs}
+  :short "How I learned to stop worrying and love hydra/emacs/whatever"
+  :music {:title "Kaerimichi"
+          :url   "https://www.youtube.com/watch?v=2OC6ARG6fZA"}}
+ {:title "Using IP addresses to assume the language is dumb"
   :slug  "ip-to-assume-language-dumb"
   :date  "2020/08/04"
   :tags  #{:rant}
