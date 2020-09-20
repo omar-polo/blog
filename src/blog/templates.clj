@@ -55,12 +55,15 @@
        [:a {:href (str "/post/" slug ".html")} title]
        title)]
     [:p.author "Written by " [:em "Omar Polo"] " on " (time/fmt-loc date)
-     (if music
-       (list " while listening to " [:a {:href   (:url music)
-                                         :target "_blank"
-                                         :rel    "noopener"}
-                                     "“" [:em (:title music)] "”" " by " [:em (:by music)]] ".")
-       ".")]
+     (list
+      (when music
+        (list " while listening to " [:a {:href   (:url music)
+                                          :target "_blank"
+                                          :rel    "noopener"}
+                                      "“" [:em (:title music)] "”"
+                                      (when-let [by (:by music)]
+                                        (list " by " [:em by]))]))
+      ".")]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
                    tags)]
