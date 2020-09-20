@@ -166,9 +166,10 @@
       (println "unrecognized action" action))))
 
 (comment
-  (load-posts!)
-  (clean)
-  (build)
+  (do
+    (load-posts!)
+    (clean)
+    (build))
   (serve)
   (stop-jetty)
   (deploy)
