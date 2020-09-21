@@ -1,4 +1,10 @@
-[{:title "EMMS"
+[{:title "Automatic USB Tethering on OpenBSD"
+  :slug "openbsd-tethering"
+  :date "2020/09/21"
+  :tags #{:OpenBSD}
+  :short "hotplug my lazyness"
+  :xkcd 1319}
+ {:title "EMMS"
   :slug  "emms"
   :date  "2020/09/20"
   :tags  #{:emacs :elisp}
