@@ -1,8 +1,8 @@
 [{:title "EMMS"
   :slug  "emms"
   :date  "2020/09/20"
-  :tags  #{:emacs}
-  :short "How I learned to stop worrying and love hydra/emacs/whatever"
+  :tags  #{:emacs :elisp}
+  :short "How I learned to stop worrying and love the hydra/emacs/whatever"
   :music {:title "Kaerimichi"
           :url   "https://www.youtube.com/watch?v=2OC6ARG6fZA"}}
  {:title "Using IP addresses to assume the language is dumb"
