@@ -45,7 +45,7 @@
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
-   {:keys [title date slug tags short body toot music], :as post}]
+   {:keys [title date slug tags short body toot music xkcd], :as post}]
   [:article
    [:header
     [(if full?
@@ -67,6 +67,11 @@
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
                    tags)]
+    (when xkcd
+      [:p [:a {:href (str "https://xkcd.com/" xkcd)
+               :target "_blank"
+               :rel "noopener"}
+           "Related XKCD"]])
     (when toot
       [:p [:a {:href   toot,
                :target "_blank"
