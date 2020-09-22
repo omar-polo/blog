@@ -27,12 +27,17 @@ daemon and *somethingsomething*-ctl to manage 'em.  I prefer have those
 cores in the directory I'm in.  Bonus points if they are called like
 I'm used.
 
-```echo %e.core | sudo tee /proc/sys/kernel/core_pattern```
+```sh
+echo %e.core | sudo tee /proc/sys/kernel/core_pattern
+```
 
 `%e` is replaced with the program name.
 
-However, on my machine, the core files are called `$prgname.core.$pid`. To disable the `.pid` at the end
+However, on my machine, the core files are called
+`$prgname.core.$pid`. To disable the `.pid` at the end
 
-```echo 0 | sudo tee /proc/sys/kernel/core_uses_pid```
+```sh
+echo 0 | sudo tee /proc/sys/kernel/core_uses_pid
+```
 
 And that's all!

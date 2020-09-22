@@ -19,45 +19,47 @@ come along with imagemagick.
 
 Here's the script
 
-	#!/bin/sh
+```sh
+#!/bin/sh
 
-	convert sprites/* -append img/sprites.png
+convert sprites/* -append img/sprites.png
 
-	for i in sprites/*; do
-		identify -format '%W %H %f\n' $i
-	done | awk '
-	function fname(path) {
-		sub (".png", "", path)
-		return path
-	}
+for i in sprites/*; do
+	identify -format '%W %H %f\n' $i
+done | awk '
+function fname(path) {
+	sub (".png", "", path)
+	return path
+}
 
-	BEGIN {
-		y = 0
+BEGIN {
+	y = 0
 
-		print "%sprite-base {"
-		print "	background-image: url(/img/sprites.png);"
-		print "	background-repeat: no-repeat;"
-		print "}"
-		print ""
-	}
+	print "%sprite-base {"
+	print "	background-image: url(/img/sprites.png);"
+	print "	background-repeat: no-repeat;"
+	print "}"
+	print ""
+}
 
-	{
-		width = $1
-		height = $2
-		class = fname($3)
+{
+	width = $1
+	height = $2
+	class = fname($3)
 
-		print "%sprite-" class " {"
-		print "	@extend %sprite-base;"
-		if (y == 0)
-			print "	background-position: 0 0;"
-		else
-			print "	background-position: 0 -" y "px;"
-		print "}"
-		print ""
+	print "%sprite-" class " {"
+	print "	@extend %sprite-base;"
+	if (y == 0)
+		print "	background-position: 0 0;"
+	else
+		print "	background-position: 0 -" y "px;"
+	print "}"
+	print ""
 
-		y += height;
-	}
-	' > scss/_sprites.scss
+	y += height;
+}
+' > scss/_sprites.scss
+```
 
 Assuming that the images are within `sprites/` and all of them are png
 files, this script will generate the sprite in `img/sprites.png` and a

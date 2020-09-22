@@ -1,7 +1,9 @@
 These days, for various reason, I'm using USB tethering very often.
 Enabling it it's not difficult at all, it as simple as
 
-    doas dhclient urndis0
+```sh
+doas dhclient urndis0
+```
 
 But it's tedious.  Especially if you need to do it multiple times per
 day.  I needed something to save me from filling my shell history of
@@ -50,9 +52,11 @@ esac
 
 Remember to make the script executable and to enable `hotplugd(8)`:
 
-    # chmod +x /etc/hotplug/attach
-    # rcctl enable hotplugd
-    # rcctl start hotplugd
+```sh
+# chmod +x /etc/hotplug/attach
+# rcctl enable hotplugd
+# rcctl start hotplugd
+```
 
 Every time you enable the tethering on your phone your computer will
 automatically connect to it.  In theory the same principle can also be

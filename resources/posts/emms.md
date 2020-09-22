@@ -58,7 +58,7 @@ code is what I ended up with.
           (emms-playlist-mode-center-current))))))
 ```
 
-![emms selectrum](/img/emms-selectrum.png)
+![emms selectrum](/img/emms-selectrum.png "Selecting a song from the current playlist with selectrum")
 
 Should be pretty easy to adapt it to use the standard
 `completing-read`.
@@ -74,7 +74,7 @@ basically a mini-popup-ui for music controls.  (in addition, I've
 recently discovered the hydra package, and I couldn't find an excuse
 not to build a hydra for EMMS).
 
-![emms hydra](/img/emms-hydra.png)
+![emms hydra](/img/emms-hydra.png "An Hydra for EMMS")
 
 I'm still pretty new to hydra, and I'm not 100% happy about how I'm
 doing the interpolation, but anyway, here's the code.

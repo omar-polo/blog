@@ -125,7 +125,7 @@ implementation of the states.  All my states inherits from the `State`
 node, so all that machinery with `has_method` isn't needed.  The
 implementation of the superclass `State` is as follow:
 
-```
+```gdscript
 # State.gd
 extends Node
 class_name State
@@ -185,13 +185,13 @@ func process(delta : float) -> void:
 ```
 
 with a scene tree as follows:
-```
+```tree
 Enemy (KinematicBody2D in my case)
  |- ...
- \- StateMachine
+ `- StateMachine
      |- WanderingState
      |- ChasingState
-     \- FleeingState
+     `- FleeingState
 ```
 
 (the `get_node("../..")` is used to get the `Enemy` from the states,
@@ -260,7 +260,7 @@ function.  Then, if `C` wants to backtrack it can simply call
 `backtrack()`, otherwise if it wants to change to another state, say
 `B`, it can do so with:
 
-```
+```gdscript
 state_machine.pop()
 state_machine.change_to("B")
 ```

@@ -20,7 +20,7 @@ least), and it's included in the base system installation of most
 If you have never used it, here's a quick howto.
 
 You can define constants with
-```
+```c
 #define PI 3.141592653589793238462643383279502884197169
 ```
 and use them whenever you like, for instance
@@ -36,15 +36,19 @@ manage a couple of CSS variables.
 Now, let's see how this applies to CSS. Given a file with the
 following content
 
-	#define BASE1 #221635
-	
-	body {
-	    background-color: BASE1;
-	}
+```css
+#define BASE1 #221635
+
+body {
+    background-color: BASE1;
+}
+```
 
 we can *compile* it with
 
-	$ cpp -P file.css > a.css
+```sh
+$ cpp -P file.css > a.css
+```
 
 and obtain a valid CSS file `a.css`.
 

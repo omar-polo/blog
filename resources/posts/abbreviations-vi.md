@@ -11,5 +11,7 @@ has them too.
 
 Now my `~/.nexrc` is more rich:
 
-	ab #d #define
-	ab #i #include
+```vi
+ab #d #define
+ab #i #include
+```

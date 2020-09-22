@@ -35,7 +35,7 @@ httpd and slowcgi already in base.)
 
 For reference, my configuration file is `/usr/local/etc/cgit-op.conf`
 and contains:
-```
+```conf
 css=/mine.css
 logo=/logo.png
 
@@ -96,11 +96,11 @@ scan-path=/home/git/repositories
 ```
 
 The important bits of all of these are only:
-```
+```conf
 enable-git-config=1
 ```
 and
-```
+```conf
 scan-path=/home/git/repositories
 ```
 
@@ -121,7 +121,7 @@ changing the default path for the repositories, I didn't want to.
 
 I'm still not sure if this is the best way to handle things, but I
 made fcgiwrap use the `git` user with
-```
+```conf
 fcgiwrap_user="git"
 ```
 in `/etc/rc.conf` plus a manual `chown(8)` on the socket.  Now cgit
@@ -142,7 +142,7 @@ If you set `enable-git-config` in cgit configuration file, now you can
 control some cgit per-repo options via
 `~git/repositories/$REPO/config`.  You can create a section that looks
 like this:
-```
+```conf
 [cgit]
 	ignore = 1
 ```
@@ -158,7 +158,7 @@ Fortunately, gitolite lets us set git configurations via the
 `cgit.*` is enough, haven't tested tho).
 
 Now, in your `gitolite.conf` you can
-```
+```conf
 repo gitolite-admin
     config cgit.ignore=1
 ```
@@ -167,7 +167,7 @@ clone).
 
 But (there are too many 'but' in this section, hu?) we can do even
 better:
-```
+```conf
 @hiddenrepos = gitolite-admin
 @hiddenrepos = private-stuff
 @hiddenrepos = next-gen-revolutionary-stuff

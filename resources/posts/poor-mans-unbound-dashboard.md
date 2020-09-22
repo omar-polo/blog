@@ -28,11 +28,13 @@ The result is this
 
 ## The flow
 
-	                    .-
-	                   /     various   ------->     multiple
-	unbound stats  -------    fifos    ------->      ttyplot
-	                   \               ------->   per tmux pane
-	                    `-
+```asciiart
+                    .-
+                   /     various   ------->     multiple
+unbound stats  -------    fifos    ------->      ttyplot
+                   \               ------->   per tmux pane
+                    `-
+```
 
 The idea is to run `unbound-control stats` every once in a while,
 multiplexing its output and draw each (interesting) stats with ttyplot

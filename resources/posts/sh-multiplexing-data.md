@@ -7,7 +7,9 @@ a piece of data from a pipeline and send it to two different places.
 
 The canonical way to do this is `tee(1)`, and it's what I've used it the linked article:
 
-	something | tee >(cmd) | something-else
+```sh
+something | tee >(cmd) | something-else
+```
 
 (the `>(cmd)` construct is bash, and zsh I think, specific: it executes
 `cmd` in a subshell and execute `tee` with something like `/dev/fd/63`
@@ -21,11 +23,13 @@ and the cons.
 
 That is:
 
-	something | tee a-file | something-else
-	cmd < a-file
-	
-	# and then, probably
-	rm a-file
+```sh
+something | tee a-file | something-else
+cmd < a-file
+
+# and then, probably
+rm a-file
+```
 
 (or even better with `mktemp(1)`)
 
@@ -41,9 +45,11 @@ An almost similar approach is to use fifo.  A fifo, aka a named pipe,
 is a special file that you can write to and read from, in a FIFO
 fashion.
 
-	mkfifo a-fifo
-	something | tee a-fifo | something-else
-	while read line < a-fifo; do echo $line; done | cmd
+```sh
+mkfifo a-fifo
+something | tee a-fifo | something-else
+while read line < a-fifo; do echo $line; done | cmd
+```
 
 This is especially useful if you need to have a long-running script that
 needs to duplicate a stream from one source.  You create the fifos at the
@@ -69,19 +75,23 @@ different processes pulling out those stats from the fifo to draw graphs.
 
 The code was like
 
-	unbound-control stats			\
-	| tee >(grep something > a-fifo)	\
-	| tee >(grep something-else > b-fifo)	\
-	| ...
+```sh
+unbound-control stats			\
+| tee >(grep something > a-fifo)	\
+| tee >(grep something-else > b-fifo)	\
+| ...
+```
 
 Well, that can be rewritten as
 
-	unbound-control stats			\
-	| sed 's/something/&/w a-fifo'		\
-	| sed 's/something-else/&/w b-fifo	\
-	| ...
+```sh
+unbound-control stats			\
+| sed 's/something/&/w a-fifo'		\
+| sed 's/something-else/&/w b-fifo	\
+| ...
+```
 
-by leveraging some sed behaviours:
+by leveraging some sed behaviors:
 
 1. every line read is printed to stdout (eventually transformed)
 2. after the `s` command you can use `w` to write the transformed lines
@@ -103,7 +113,6 @@ command, but does something different.  The correct form would be `sed
 perform commands only on lines that match a regular expression.
 
 -----
-
 
 I find this last technique pretty, even prettier than the `>(grep ... >)`
 idiom I used previously since it avoids the subshell to do the filtering

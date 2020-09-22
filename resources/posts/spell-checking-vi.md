@@ -5,7 +5,9 @@ some feature: but here's where the *composition* shines.
 It's stupid and dead-simple actually, but I haven't thought
 about it until some weeks ago. With a simple
 
-	map « :w^M:!aspell -c %^M:e!^M^M
+```vi
+map « :w^M:!aspell -c %^M:e!^M^M
+```
 
 in your `~/.nexrc` it's simple to do spell checking in `vi`.
 
@@ -15,8 +17,9 @@ with `C-v ENTER` or `C-v C-m`.
 I've also the following binding in my `~/.nexrc` to spell check
 Italian text:
 
-	map » :w^M:!aspell --lang=it -c %^M:e!^M^M
-
+```vi
+map » :w^M:!aspell --lang=it -c %^M:e!^M^M
+```
 
 ### What's that gibberish?
 

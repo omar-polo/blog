@@ -29,8 +29,10 @@ that I know respect `$CDPATH`, and how they behave.
 Just as I showed you up there.  When you `cd` into a directory inside
 your `$CDPATH` it will print your new current working directory:
 
-	$ cd games/godot
-	/usr/ports/games/godot
+```sh
+$ cd games/godot
+/usr/ports/games/godot
+```
 
 It will not, however, autocomplete.
 
@@ -47,7 +49,9 @@ It will behave just like ksh.
 9ports rc does not seem to inherit `$CDPATH`, but you can set it
 (unsurprisingly) with
 
-	cdpath=(. /usr/ports)
+```rc
+cdpath=(. /usr/ports)
+```
 
 in your `~/lib/profile`. Other versions of `rc` (I'm talking about the
 one you get with the `rc` package on FreeBSD) do inherit it, so double
@@ -56,18 +60,22 @@ check!
 Additionally, `rc` prints the `pwd` only if you're `cd`-ing into
 something that's not within `.` (the current directory).  So:
 
-	% pwd
-	/home/op
-	% echo $cdpath
-	. /usr/ports
-	% cd bin  # won't print /home/op/bin
-	% cd games
-	/usr/ports/games
-	%
+```rc
+% pwd
+/home/op
+% echo $cdpath
+. /usr/ports
+% cd bin  # won't print /home/op/bin
+% cd games
+/usr/ports/games
+%
+```
 
 ### csh & tcsh
 
-	set cdpath = (. /usr/ports)
+```csh
+set cdpath = (. /usr/ports)
+```
 
 for the rest, behaves exactly like `rc`.  I don't really use csh, nor
 tcsh, so I can't make further comments.

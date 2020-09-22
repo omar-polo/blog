@@ -4,7 +4,7 @@ However...
 I've got an error trying to synchronize elasticsearch and postgresql
 using logstash.  My configurations was along the lines of
 
-```yml
+```logstash
 input {
     jdbc {
         jdbc_connection_string => "jdbc:postgresql://192.168.2.156:5432/chiaki"

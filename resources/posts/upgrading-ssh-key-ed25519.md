@@ -21,24 +21,28 @@ the configuration.
 
 So, to keep it short, what I did was as simple as
 
-	ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+```
 
 and then adding the new public key to some servers.  You can check
 with `ssh -v foo@bar` that ssh attempt to use various keys
 
-    ; ssh -v foo@bar
-    OpenSSH_8.3, LibreSSL 3.2.0
-	debug1: Reading configuration data /home/op/.ssh/config
-	[...]
-	debug1: Offering public key: /home/op/.ssh/id_rsa RSA SHA256:...
-	debug1: Authentications that can continue: ...
-	debug1: Trying private key: /home/op/.ssh/id_dsa
-	debug1: Trying private key: /home/op/.ssh/id_ecdsa
-	debug1: Trying private key: /home/op/.ssh/id_ecdsa_sk
-	debug1: Offering public key: /home/op/.ssh/id_ed25519 ED25519 SHA256:...
-	debug1: Server accepts key: /home/op/.ssh/id_ed25519 ED25519 SHA256:...
-	debug1: Authentication succeeded (publickey).
-	[...]
+```sh
+; ssh -v foo@bar
+OpenSSH_8.3, LibreSSL 3.2.0
+debug1: Reading configuration data /home/op/.ssh/config
+[...]
+debug1: Offering public key: /home/op/.ssh/id_rsa RSA SHA256:...
+debug1: Authentications that can continue: ...
+debug1: Trying private key: /home/op/.ssh/id_dsa
+debug1: Trying private key: /home/op/.ssh/id_ecdsa
+debug1: Trying private key: /home/op/.ssh/id_ecdsa_sk
+debug1: Offering public key: /home/op/.ssh/id_ed25519 ED25519 SHA256:...
+debug1: Server accepts key: /home/op/.ssh/id_ed25519 ED25519 SHA256:...
+debug1: Authentication succeeded (publickey).
+[...]
+```
 
 (lines elided to keep them short and readable)
 

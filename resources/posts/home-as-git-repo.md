@@ -8,7 +8,7 @@ I've done a bit of research on the internet and I've found
 of that post suggest to use your whole $HOME as a git repository, with
 a one-byte `.gitignore`:
 
-```
+```gitignore
 *
 ```
 
@@ -19,9 +19,9 @@ except files that you add with `-f`.  So far so good.
 ---
 
 **edit**: the part that follows is mostly wrong.  The problem I had
-was due to this piece of my global git conifg:
+was due to this piece of my global git config:
 
-```
+```git
 [core]
 	excludesfile = ~/.gitignore
 ```
@@ -49,7 +49,7 @@ something else (git should stop at filesystem boundaries AFAIK), but
 this isn't my case.
 
 Fortunately there is a simple solution:
-```
+```sh
 $ cd
 $ mv .gitignore .git/info/exclude
 ```
