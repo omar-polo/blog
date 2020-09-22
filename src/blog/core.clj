@@ -146,6 +146,11 @@
   []
   (sh "rm" "-rf" "resources/out/"))
 
+(defn local-deploy
+  "Copy the files to the local server"
+  []
+  (sh "rsync" "-r" "--delete" "resources/out/" "/var/www/omarpolo.local/"))
+
 (defn deploy
   "Copy the files to the server"
   []
@@ -169,8 +174,12 @@
   (do
     (load-posts!)
     (clean)
-    (build))
+    (build)
+    (local-deploy))
   (serve)
   (stop-jetty)
-  (deploy)
+
+  (do
+    (deploy)
+    (local-deploy))
 )
