@@ -43,9 +43,9 @@ DEVNAME=$2
 case $DEVCLASS in
 # network devices
 3)
-	case $2 in
+	case $DEVNAME in
         # USB tethering
-        urndis*) dhclient $2 ;;
+        urndis*) dhclient $DEVNAME ;;
     esac
 esac
 ```
