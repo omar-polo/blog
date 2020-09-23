@@ -107,11 +107,15 @@ article {
   margin-bottom: 30px;
 }
 
-h2::before { font-family: monospace; content: "## "; }
-h3::before { font-family: monospace; content: "### "; }
-h4::before { font-family: monospace; content: "#### "; }
-h5::before { font-family: monospace; content: "##### "; }
-h6::before { font-family: monospace; content: "###### "; }
+h2::before, h3::before, h4::before, h5::before, h6::before {
+  font-family: monospace;
+}
+
+h2::before { content: "## "; }
+h3::before { content: "### "; }
+h4::before { content: "#### "; }
+h5::before { content: "##### "; }
+h6::before { content: "###### "; }
 
 h1 {
   position: relative;
