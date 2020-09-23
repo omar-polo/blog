@@ -341,3 +341,42 @@ footer {
   font-style: italic;
   text-align: center;
 }
+
+
+/* dark theme */
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #ffffea;
+    background-color: #383838;
+  }
+
+  h1::after, h2.fragment::after {
+    color: #5c5c5c;
+  }
+
+  h2::before, h3::before, h4::before, h5::before, h6::before {
+    color: #5c5c5c;
+  }
+
+  a {
+    color: #8e8eff;
+  }
+
+  code {
+    color: #ea7acd;
+  }
+
+  pre {
+    border-color: #999999;
+    background-color: #2f2e2d;
+  }
+
+  pre code {
+    color: #ffffea;
+  }
+
+  pre code::after {
+    border: 1px solid #999999;
+    background-color: #59564c;
+  }
+}
