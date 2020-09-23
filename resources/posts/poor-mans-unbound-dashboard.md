@@ -172,7 +172,7 @@ something, and because of the `>(cmd)` construct.  Rewriting the script
 using only pure sh(1) constructs is left as an exercise to the reader
 (hint: you need some extra fifo.)
 
-```sh
+```bash
 #!/usr/bin/env bash
 
 filter() {
