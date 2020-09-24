@@ -65,8 +65,9 @@ Should be pretty easy to adapt it to use the standard
 
 ## Hydra
 
-I usually listen to music while doing various things, and I don't the
-context switch from/to what I'm working on and the playlist buffer.
+I usually listen to music while doing various things, and I don't like
+the context switch from/to what I'm working on and the playlist
+buffer.
 
 An hydra seems the best approach: you get "bindings that stick around"
 with just the little UI you need to manage your player.  It's
