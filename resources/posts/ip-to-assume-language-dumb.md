@@ -6,7 +6,9 @@ In layman's terms, the `Accept-Language` is used to tell the server
 what language(s) the user understands.  For instance, when I visit a
 website, firefox sends something like this:
 
-	Accept-Language: en-US,en;q=0.5
+```http
+Accept-Language: en-US,en;q=0.5
+```
 
 This means that I want English pages.  Now, as always, in reality the
 server can do what it wants, and that's right.  As an example, when
