@@ -7,8 +7,8 @@ Due to events that are outside the scope of this entry, I moved my
 computer in a place where I cannot comfortably attach a jack to it.
 (I realized this only after the rearrangement, shame on me!)
 
-While any sane person would just have bought a longer jack cable (that
-I should have somewhere anyway) I decided that was the right time to
+While any sane person would have just bought a longer cable (that I
+should have somewhere anyway) I decided that was the right time to
 test the network capabilities of `sndio`, the audio server of my OS of
 choice.
 
