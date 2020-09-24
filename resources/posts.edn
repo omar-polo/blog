@@ -2,7 +2,7 @@
   :slug  "sndio-over-network"
   :date  "2020/09/22"
   :tags  #{:OpenBSD}
-  :short "why searching for a longer cable when you could use the network? /s"}
+  :short "why searching for a longer cable when you can use the network? /s"}
  {:title "Automatic USB Tethering on OpenBSD"
   :slug "openbsd-tethering"
   :date "2020/09/21"
