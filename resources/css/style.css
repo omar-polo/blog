@@ -25,7 +25,7 @@ time, mark, audio, video {
 
 html, body {
   line-height: 1;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 body {
@@ -59,12 +59,12 @@ footer, header, hgroup, menu, nav, section {
 }
 
 #wrapper {
-  max-width: 900px;
+  max-width: 840px;
   margin: 0 auto;
 }
 
 body > header {
-  max-width: 960px;
+  max-width: 840px;
   margin: 0 auto;
 }
 
@@ -100,7 +100,7 @@ p.subtitle {
 
 body main {
   margin: 0 auto;
-  max-width: 960px;
+  max-width: 840px;
 }
 
 article {
@@ -214,10 +214,12 @@ header > p {
 
 p {
   margin: 1rem 0;
+  text-align: justify;
+  hyphens: auto;
 }
 
 p, li {
-  line-height: 1.5rem;
+  line-height: 1.7;
 }
 
 a {
