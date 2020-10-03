@@ -1,17 +1,21 @@
 (ns blog.rss
-  (:require [blog.time :as time]
-            [clojure.data.xml :refer :all]
-            [hiccup.core :as hiccup]
-            [commonmark-hiccup.core :refer [markdown->hiccup default-config]]))
+  (:require
+   [blog.gemtext :as gemtext]
+   [blog.time :as time]
+   [clojure.data.xml :refer :all]
+   [commonmark-hiccup.core :refer [markdown->hiccup default-config]]
+   [hiccup.core :as hiccup]))
 
-(defn item [{:keys [title date slug tags short body]}]
+(defn item [{:keys [title date slug tags short body gemtext?]}]
   (let [link (str "https://www.omarpolo.com/post/" slug ".html")]
     [:item
      [:title title]
      [:description
       [:-cdata
        (hiccup/html
-        (markdown->hiccup default-config body))]]
+        (if gemtext?
+          (-> body gemtext/parse gemtext/to-hiccup)
+          (markdown->hiccup default-config body)))]]
      [:guid link]
      [:link link]
      [:pubDate (time/fmt-rfc-2822 date)]]))
