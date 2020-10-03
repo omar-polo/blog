@@ -1,7 +1,9 @@
-(ns blog.templates
-  (:require [blog.time :as time]
-            [hiccup.page :refer [html5 include-css]]
-            [commonmark-hiccup.core :refer [markdown->hiccup default-config]]))
+(ns blog.http
+  (:require
+   [blog.time :as time]
+   [blog.gemtext :as gemtext]
+   [hiccup.page :refer [html5 include-css]]
+   [commonmark-hiccup.core :refer [markdown->hiccup default-config]]))
 
 (defn link-item [{:keys [url text]}]
   [:li [:a {:href url} text]])
@@ -13,6 +15,7 @@
      [:ul
       (link-item {:url "/", :text "Home"})
       (link-item {:url "/tags.html", :text "All Tags"})
+      (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"})
       (link-item {:url "https://git.omarpolo.com", :text "Git repos"})]]
     [:div
      [:h1 [:a {:href "/"} "yumh"]]
@@ -50,7 +53,7 @@
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
-   {:keys [title date slug tags short body toot music xkcd], :as post}]
+   {:keys [title date slug tags short body toot music xkcd gemtext?], :as post}]
   [:article
    [:header
     [(if full?
@@ -83,7 +86,9 @@
                :rel    "noopener"} "Comments over ActivityPub"]])]
    [:section
     (if full?
-      (markdown->hiccup default-config body)
+      (if gemtext?
+        (-> body gemtext/parse gemtext/to-hiccup)
+        (markdown->hiccup default-config body))
       [:p short])]])
 
 (defn home-page
