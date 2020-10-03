@@ -222,6 +222,11 @@ p, li {
   line-height: 1.7;
 }
 
+p.link::before {
+  content: ' => ';
+  font-family: monospace;
+}
+
 a {
   text-decoration: none;
   color: #4b4baf;
@@ -264,18 +269,6 @@ pre {
 
 pre code {
   color: #333;
-}
-
-pre code::after {
-  content: attr(class);
-  position: absolute;
-  right: 10px;
-  top: -10px;
-  border: 1px solid #999999;
-  border-radius: 4px;
-  background-color: #e1dbca;
-  padding: 4px;
-  font-family: monospace;
 }
 
 em {
@@ -380,10 +373,5 @@ footer {
 
   pre code {
     color: #ffffea;
-  }
-
-  pre code::after {
-    border: 1px solid #999999;
-    background-color: #59564c;
   }
 }
