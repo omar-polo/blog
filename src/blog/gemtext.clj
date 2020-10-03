@@ -3,7 +3,7 @@
    [clojure.string :as str]
    [clojure.walk :as walk]))
 
-(defn- starts-with? 
+(defn- starts-with?
   "check if `s` starts with `substr`.  Return `false` if `s` is not a
   string."
   [s substr]
@@ -52,7 +52,7 @@
              (starts-with? line "### ") [:h3 (subs line 4)]
              :else                      line))))))
 
-(defn- generic-matcher 
+(defn- generic-matcher
   "Return a generic matcher transducer.  Will wrap line that starts with
   `start` within `[type line]`."
   [start type]
@@ -98,7 +98,7 @@
         (match-links)
         (match-paragraphs)))
 
-(defn parse 
+(defn parse
   "Given a string representing a gemtext document, parse it into an
   hiccup-like data structure."
   [str]
@@ -110,7 +110,7 @@
      (fn [t]
        (cond
          (nil? t)    nil
-         
+
          (or (seq? t)
              (vector? t))
          (if (keyword? (first t))
