@@ -1,0 +1,34 @@
+Like I said in the previous entry I don't like to write howtos: the information tend to rot away if not carefully updated, and I don't have all that stamina.  Anyway, I felt like writing this, and so here we are.
+
+=> /post/openbsd-tethering.html Previous entry: Automatic USB Tethering on OpenBSD
+
+Due to events that are outside the scope of this entry, I moved my computer in a place where I cannot comfortably attach a jack to it.  (I realized this only after the rearrangement, shame on me!)
+
+While any sane person would have just bought a longer cable (that I should have somewhere anyway) I decided that was the right time to test the network capabilities of sndio, the audio server of my OS of choice.
+
+I have to admit that while at a first glance sending audio over the network may seem complicated, I was surprised by how easy it was.
+
+The plan™ was to route all the audio from my OpenBSD workstation to a raspberry pi through the LAN.  Why a raspberry?  Because I had one spare that was accumulating dust.
+
+So, I installed void linux on the raspberry (OpenBSD should run on the raspberries, but for the installation you need to use the serial, and I don't have an adapter).  The setup was really quick:
+
+```
+# xbps-install sndio
+# xbps-install alsa-utils # for alsamixer
+# echo 'OPTS="-L-"' > /etc/sv/sndiod/conf
+# ln -s /etc/sv/sndiod /var/service/
+```
+
+(the -L- is to tell sndiod to accept connection from anywhere.)
+
+And for the pi that's all.  (except that I still have to increase the volume with alsamixer after every boot).  Now, back on the workstation I added this to my .xsession
+
+```
+export AUDIODEVICE=snd@192.168.1.12/0
+```
+
+(You probably want to change the ip address, and only that!  snd@ IS NOT a username.  The same goes for the /0: it's the device number, not some CIDR notation.)
+
+Now all the audio is transparently sent through the network to my pi, and from there to my headphones via my (short) jack cable.  Awesome.
+
+That's really all.  Now the bad news: you could have same some time by reading the FAQ on the OpenBSD website instead of this post :P

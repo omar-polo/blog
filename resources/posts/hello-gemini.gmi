@@ -1,0 +1,15 @@
+I've finally decided to invest some time and mess aronud with gemini!
+
+This post is just an "hello world gemini", to announce that, from now on, this blog will be available also with the gemini protocol.
+
+=> https://gemini.circumlunar.space/    Project Gemini Website
+
+I thought for a while on how to make the content available on both HTTP and gemini.  Automatically translating markdown (what I used until now) to gemtext is NOT something I want to do, I want pretty first-class gemtext posts, not a best-effort automatic translation.
+
+So I settle on using gemtext for all the new content.  I'll miss some in-line formatting, but the result shouldn't be too bad.  I've started to migrate some old content to gemtext too, but not everything is currently available, it'll take some time.
+
+In order to make this blog both gemini and WWW native, I needed to do other things as well.  I'm planning to write some more posts in the future on what I did, but the short version was to write a parser in Clojure for gemtext and a small test gemini server to play.  Fortunately someone had already written a major mode for editing gemtext with Emacs.
+
+=> https://git.carcosa.net/jmcbray/gemini.el    gemini-mode.el
+
+I'm happy with the end results.  In particular, using gemtext for the new content will also mean that, in the future, expanding the site to gopher will be easier.

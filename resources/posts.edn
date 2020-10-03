@@ -1,14 +1,21 @@
-[{:title "sndio over the network"
-  :slug  "sndio-over-network"
-  :date  "2020/09/22"
-  :tags  #{:OpenBSD}
-  :short "why searching for a longer cable when you can use the network? /s"}
- {:title "Automatic USB Tethering on OpenBSD"
-  :slug "openbsd-tethering"
-  :date "2020/09/21"
-  :tags #{:OpenBSD}
-  :short "hotplug my lazyness"
-  :xkcd 1319}
+[{:title    "Hello gemini!"
+  :slug     "hello-gemini"
+  :date     "2020/10/02"
+  :tags     #{:gemini}
+  :gemtext? true}
+ {:title    "sndio over the network"
+  :slug     "sndio-over-network"
+  :date     "2020/09/22"
+  :tags     #{:OpenBSD}
+  :short    "why searching for a longer cable when you can use the network? /s"
+  :gemtext? true}
+ {:title    "Automatic USB Tethering on OpenBSD"
+  :slug     "openbsd-tethering"
+  :date     "2020/09/21"
+  :tags     #{:OpenBSD}
+  :short    "hotplug my lazyness"
+  :xkcd     1319
+  :gemtext? true}
  {:title "EMMS"
   :slug  "emms"
   :date  "2020/09/20"
