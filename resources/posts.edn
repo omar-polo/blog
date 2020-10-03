@@ -1,4 +1,10 @@
-[{:title    "Hello gemini!"
+[{:title    "Parsing Gemtext with Clojure"
+  :slug     "parsing-gemtext-with-clojure"
+  :date     "2020/10/03"
+  :tags     #{:clojure :gemini}
+  :short    "fun with transducers"
+  :gemtext? true}
+ {:title    "Hello gemini!"
   :slug     "hello-gemini"
   :date     "2020/10/02"
   :tags     #{:gemini}

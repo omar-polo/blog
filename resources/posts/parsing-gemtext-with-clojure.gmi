@@ -1,0 +1,261 @@
+I've written various parsers in the past.  From simplistic stuff in Korn shell, to hand written recursive descendant parsers in Go and or C, to yacc-based parsers in C.  I even played with Alex and Happy in Haskell, but that was ages ago and I don't recall anything.
+
+One thing that I never tried was to write a parser in Clojure.  Until now.
+
+This post is an experiment: I'm trying to do some literate programming in gemtext (the Gemini protocol "native" response format, text/gemini).  If you extract all the block codes you should end up with the same gemtext parser I'm using.
+
+=> https://git.omarpolo.com/blog/tree/src/blog/gemtext.clj?id=965388145931751bf314276404816f631c27d01d gemtext.clj (as at the time of writing)
+=> gemini://gemini.circumlunar.space/docs/specification.gmi Gemini specification (over Gemini)
+=> https://gemini.circumlunar.space/docs/specification.html Gemini specification (over HTTP)
+
+One last note before the implementation: while reading the code, please keep in mind that I really wanted to play with the transducers.  There are probably more efficient or neater way to parse stuff in clojure, but I didn't want to write an efficient or fast parser.  I wanted to have some fun with the transducers!
+
+Given that gemtext is a line-oriented protocol, I thought to split the input in into lines and use some transducers magic to end up with a neat hiccup-like data structure.
+
+Now we can begin.  The aren't third parties dependencies here:
+
+```
+(ns blog.gemtext
+  (:require
+   [clojure.string :as str]
+   [clojure.walk :as walk]))
+```
+
+We'll use only clojure.string and clojure.walk, as well as the standard library.
+
+We also need one helper function, starts-with?: it's a wrapper around clojure.string/starts-with?.  The need for such function will be clear later.
+
+```
+(defn- starts-with?
+  "check if `s` starts with `substr`.  Return `false` if `s` is not a
+  string."
+  [s substr]
+  (when (string? s)
+    (str/starts-with? s substr)))
+```
+
+Every syntactical element of gemtext will be parsed by its own little transducer.  The transducer chain will be fed with a stream of lines, and will return a stream of hiccup-like data structure.  Let's begin with the most elaborate one: the match-code-blocks transducer:
+
+```
+(defn- match-code-blocks []
+  (fn [rf]
+    (let [acc   (volatile! [])
+          state (volatile! :normal)]
+      (fn
+        ([] (rf))
+        ([result] (rf result))
+        ([result line]
+         (let [in-verbatim? (= :verbatim @state)
+               marker?      (starts-with? line "```")]
+           (cond
+             (and (not in-verbatim?) marker?) ;go to verbatim
+             (do (vreset! state :verbatim)
+                 result)
+
+             ;; return what we've got and go to :normal
+             (and in-verbatim? marker?)
+             (let [res [:verbatim (str/join "\n" @acc)]]
+               (vreset! state :normal)
+               (vreset! acc [])
+               (rf result res))
+
+             in-verbatim?
+             (do (vswap! acc conj line)
+                 result)
+
+             :else
+             (rf result line))))))))
+```
+
+Woah, that was a lot.  We defined a function, that returns a function that takes a reducing-function rf.  This sets up some local state (acc and state variables), and returns another function!
+
+That's a lot of functions.
+
+In the innermost function, only the 2-arity branch is interesting, the other two are just scaffolding.  There we check if we've got a line with the ``` marker, and if so we switch between the "capturing state", where we capture all the lines in a code block, and an "identity state", where we pass what we've read unconditionally.
+
+When we switch from capturing to identity state, we also return a vector of `[:verbatim "matched lines"]`.
+
+The important thing here is to return the line we got as-is if it's not a marker or within the two markers.
+
+The rest is similar to this, but maybe simpler.  In retrospect, I should have wrote some macro to reduce the boilerplate.
+
+Now, let's parse the headings.  gemtext has three types of headings, with a syntax (and meaning) similar to markdown.
+
+```
+(defn- match-headings []
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result line]
+       (rf result
+           (cond
+             ;; the space character after the # is madatory
+             (starts-with? line "# ")   [:h1 (subs line 2)]
+             (starts-with? line "## ")  [:h2 (subs line 3)]
+             (starts-with? line "### ") [:h3 (subs line 4)]
+             :else                      line))))))
+```
+
+There are definitely similarities with the previous example, but here you'll understand why I defined starts-with? instead of using directly clojure.string/starts-with?.  The "line" we get here can be a string.  Or can be a hiccup form.  In fact, every transducer will se as input the output of the transducers that run before him.  The helper function saves us from checking every time if the input is a string or not.
+
+Now, some of the other syntactical elements are so similar to parse that I wrote a generic matcher:
+
+```
+(defn- generic-matcher
+  "Return a generic matcher transducer.  Will wrap line that starts with
+  `start` within `[type line]`."
+  [start type]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result line]
+       (rf result
+           (if (starts-with? line start)
+             [type (subs line (count start))]
+             line))))))
+```
+
+and I've used it to match the lists and the quotes:
+
+```
+(defn- match-lists [] (generic-matcher "* " :li))
+(defn- match-blockquotes [] (generic-matcher "> " :blockquote))
+```
+
+In case you didn't know, lists in gemtext starts with a star * followed by at least one space, followed by arbitrary text.  The quote are similar, except that they begins with >.
+
+Matching the links is a little bit difficult:
+
+```
+(defn- match-links []
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result line]
+       (let [spaces?   #{\space \tab}
+             nonblank? (complement spaces?)]
+         (rf result
+             (if-not (starts-with? line "=>")
+               line
+               (->> (seq line)
+                    (drop 2)               ; drop the marker
+                    (drop-while spaces?)   ; drop also the optional spaces
+                    (split-with nonblank?) ; separate URL from (optional) label
+                    (apply #(vector :link
+                                    (apply str %1)
+                                    (apply str (drop-while spaces? %2))))))))))))
+```
+
+First of all, unlike in HTML, links on gemini aren't inline entities.  Second, their syntax is an "arrow" `=>` eventually followed by spaces, followed by the URL, and an optional description.
+
+In the previous function, if we match a line that starts with "=>" we start split it into the URL and the (optional) description.
+
+(seq line) will return a sequence of character, from which we remove the marker.  Then we split this in the URL and description.  To keep the implementation easy an URL is just a sequence of bytes other than a space or tab.  We also drop any blanks from the description.
+
+How cool are the threading macros?  (also note that we used a set as a function for even more style points!)
+
+Anyway, the only missing piece is matching the paragraphs.  Given that we match on every syntactical entities present in the specification (as of now at least), every non-matched line is a paragraph.
+
+```
+(defn match-paragraphs [] (generic-matcher "" :paragraph))
+```
+
+Done!
+
+Now we only need to chain these transducer together.  Keeping in mind that the order is important, here's the chain:
+
+```
+(def parser
+  (comp (match-code-blocks)
+        (match-headings)
+        (match-lists)
+        (match-blockquotes)
+        (match-links)
+        (match-paragraphs)))
+```
+
+Lines will flow from the first transducer (match-code-blocks) towards the end, being enriched at every step.  Beautiful!
+
+Parsing is thus dead-simple now that we've got every piece:
+
+```
+(defn parse
+  "Given a string representing a gemtext document, parse it into an
+  hiccup-like data structure."
+  [str]
+  (transduce parser conj [] (str/split-lines str)))
+```
+
+We use our chain (the parser), fed with the lines from str, and conj everything into [].  The empty vector is important, because if you use a list or nil, due to how conj works, you'll get the parsed document in reverse order.
+
+Aaaand that's all!  As a final bonus, if you reached this point, here's an implementation of unparse, a function that takes our hiccup-like format and returns a string, and to-hiccup to translate our hiccup to HTML-hiccup.
+
+```
+(defn unparse [thing]
+  (let [sw (StringBuilder.)]
+    (walk/prewalk
+     (fn [t]
+       (cond
+         (nil? t) nil
+
+         (or (seq? t)
+             (vector? t))
+         (if-not (keyword? (first t))
+           t
+           (let [[type a b] t]
+             (.append sw
+                      (case type
+                        :verbatim   (str "```\n" a "\n```")
+                        :h1         (str "# " a)
+                        :h2         (str "## " a)
+                        :h3         (str "### " a)
+                        :li         (str "* " a)
+                        :blockquote (str "> " a)
+                        :link       (str "=> " a " " b)
+                        :paragraph  a))
+             (.append sw "\n")
+             nil))))
+     thing)
+    (.toString sw)))
+```
+
+I've used clojure.walk/prewalk to traverse the input, as it makes easy to navigate inside a nested data structure.  The idea is that if we get a sequence whose first element is a keyword, that's a "tag", otherwise we recursively inspect its content.  If it's a tag, we convert it to a string, pushing it into a StringBuilder.
+
+The to-hiccup function is practically the same
+
+```
+(defn to-hiccup [doc]
+  (let [l (atom [])]
+    (walk/prewalk
+     (fn [t]
+       (cond
+         (nil? t) nil
+
+         (or (seq? t)
+             (vector? t))
+         (if-not (keyword? (first t))
+           t
+           (let [[type a b] t]
+             (swap! l conj
+                    (case type
+                      :verbatim   [:pre [:code a]]
+                      :h1         [:h1 a]
+                      :h2         [:h2 a]
+                      :h3         [:h3 a]
+                      :li         [:ul [:li a]] ;; TODO!
+                      :blockquote [:blockquote a]
+                      :link       [:p.link [:a {:href a} b]]
+                      :paragraph  [:p a]))
+             nil))))
+     doc)
+    (seq @l)))
+```
+
+The only thing that's missing from to-hiccup is the (html/gemini) list handling.  That is, while on gemini you only have "list item", in HTML the lists item must be wrapped inside a container tag, ul or ol.  Since I'm not using lists that much, I don't care at the moment.  One can probably improve it by doing some post-processing on the content of @l and grouping every :li.
+
+But that's really all.
+
+I'm using this code to parse the posts (so that they can be rendered also in HTML), and to build every gemini page.
