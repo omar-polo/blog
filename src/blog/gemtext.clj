@@ -12,20 +12,21 @@
 
 (defn- match-code-blocks []
   (fn [rf]
-    (let [acc (volatile! [])
+    (let [acc   (volatile! [])
           state (volatile! :normal)]
       (fn
         ([] (rf))
         ([result] (rf result))
         ([result line]
          (let [in-verbatim? (= :verbatim @state)
-               marker? (starts-with? line "```")]
+               marker?      (starts-with? line "```")]
            (cond
              (and (not in-verbatim?) marker?) ;go to verbatim
              (do (vreset! state :verbatim)
                  result)
 
-             (and in-verbatim? marker?) ;return what we've got and go to :normal
+             ;; return what we've got and go to :normal
+             (and in-verbatim? marker?)
              (let [res [:verbatim (str/join "\n" @acc)]]
                (vreset! state :normal)
                (vreset! acc [])
@@ -75,7 +76,7 @@
       ([] (rf))
       ([result] (rf result))
       ([result line]
-       (let [spaces? #{\space \tab}
+       (let [spaces?   #{\space \tab}
              nonblank? (complement spaces?)]
          (rf result
              (if-not (starts-with? line "=>")
@@ -109,11 +110,12 @@
     (walk/prewalk
      (fn [t]
        (cond
-         (nil? t)    nil
+         (nil? t) nil
 
          (or (seq? t)
              (vector? t))
-         (if (keyword? (first t))
+         (if-not (keyword? (first t))
+           t
            (let [[type a b] t]
              (.append sw
                       (case type
@@ -126,8 +128,7 @@
                         :link       (str "=> " a " " b)
                         :paragraph  a))
              (.append sw "\n")
-             nil)
-           t)))
+             nil))))
      thing)
     (.toString sw)))
 
@@ -140,7 +141,8 @@
 
          (or (seq? t)
              (vector? t))
-         (if (keyword? (first t))
+         (if-not (keyword? (first t))
+           t
            (let [[type a b] t]
              (swap! l conj
                     (case type
@@ -152,8 +154,7 @@
                       :blockquote [:blockquote a]
                       :link       [:p.link [:a {:href a} b]]
                       :paragraph  [:p a]))
-             nil)
-           t)))
+             nil))))
      doc)
     (seq @l)))
 
