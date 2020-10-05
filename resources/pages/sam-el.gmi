@@ -1,0 +1,6 @@
+# sam.el
+
+sam.el is a WIP sam emulator for emacs.
+
+=> https://git.omarpolo.com/sam.el      git repository
+=> https://github.com/omar-polo/sam.el  github mirror

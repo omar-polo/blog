@@ -24,6 +24,7 @@
         (assoc  :body (-> (str "posts/" slug ext) io/resource slurp))
         (update :date time/parse))))
 
+(def pages (atom nil))
 (def per-tag (atom {}))
 (def posts (atom []))
 
@@ -42,13 +43,26 @@
                 edn/read-string)]
     (add-post! p)))
 
+(defn load-pages! []
+  (reset! pages (->> "pages.edn"
+                     io/resource
+                     slurp
+                     edn/read-string
+                     (map (fn [{:keys [slug] :as p}]
+                            (assoc p :body (as-> slug $
+                                                (str "pages/" $ ".gmi")
+                                                (io/resource $)
+                                                (slurp $))))))))
+
 (defn create-dirs! []
   (doseq [d ["resources/out"
              "resources/out/gemini"
+             "resources/out/gemini/pages"
              "resources/out/gemini/post"
              "resources/out/gemini/tag"
              "resources/out/http"
              "resources/out/http/css"
+             "resources/out/http/pages"
              "resources/out/http/post"
              "resources/out/http/tag"
              "resources/out/http/img"]]
@@ -79,6 +93,15 @@
       (->> (into []))
       (update 0                        assoc :has-prev false)
       (update (dec (count post-pages)) assoc :has-next false)))
+
+(defn render-pages [pagefn proto ext]
+  (doseq [page @pages
+          :let [{:keys [slug]} page
+                filename (str "resources/out/"
+                              (name proto) "/pages/"
+                              slug ext)]]
+    (spit filename
+          (pagefn page))))
 
 (defn render-post-list [viewfn proto]
   (doseq [p    (fix-next-last (post-pages {:proto proto}))
@@ -135,9 +158,10 @@
   (create-dirs!)
   (copy-assets)
   (render-rss)
-  (doseq [[proto ffn ext homefn postfn tagsfn tagfn]
-          [[:http identity ".html" http/home-page http/post-page http/tags-page http/tag-page]
-           [:gemini gemini-post ".gmi" gemini/home-page gemini/post-page gemini/tags-page gemini/tag-page]]]
+  (doseq [[proto ffn ext homefn postfn tagsfn tagfn pagefn]
+          [[:http identity ".html" http/home-page http/post-page http/tags-page http/tag-page http/custom-page]
+           [:gemini gemini-post ".gmi" gemini/home-page gemini/post-page gemini/tags-page gemini/tag-page gemini/custom-page]]]
+    (render-pages pagefn proto ext)
     (render-post-list homefn proto)
     (doseq [p (filter ffn @posts)]
       (render-post postfn proto ext p))
@@ -182,6 +206,7 @@
 
 (defn -main [& actions]
   (load-posts!)
+  (load-pages!)
   (doseq [action actions]
     (case action
       "clean"  (clean)
@@ -193,7 +218,8 @@
 (comment
   (do
     (load-posts!)
-    (clean)
+    (load-pages!)
+    ;; (clean)
     (build)
     (local-deploy))
   (serve)

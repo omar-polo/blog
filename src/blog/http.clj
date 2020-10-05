@@ -2,6 +2,8 @@
   (:require
    [blog.time :as time]
    [blog.gemtext :as gemtext]
+   [clojure.string :as str]
+   [clojure.walk :as walk]
    [hiccup.page :refer [html5 include-css]]
    [commonmark-hiccup.core :refer [markdown->hiccup default-config]]))
 
@@ -15,8 +17,8 @@
      [:ul
       (link-item {:url "/", :text "Home"})
       (link-item {:url "/tags.html", :text "All Tags"})
-      (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"})
-      (link-item {:url "https://git.omarpolo.com", :text "Git repos"})]]
+      (link-item {:url "/pages/projects.html", :text "Projects"})
+      (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"})]]
     [:div
      [:h1 [:a {:href "/"} "yumh"]]
      [:p "writing about things, sometimes."]]]))
@@ -105,6 +107,18 @@
      (if has-next
        [:a.next {:href (str "/" (inc nth) ".html")}
         "Older Posts »"])]))
+
+(defn custom-page [{:keys [title body]}]
+  (with-page {:title title}
+    ;; warning: hack ahead
+    (walk/prewalk
+     (fn [item]
+       (if-not (and (vector? item) (= (first item) :a))
+         item
+         (let [[_ attrs & body] item]
+           [:a (update attrs :href str/replace #"\.gmi$" ".html")
+            body])))
+     (-> body gemtext/parse gemtext/to-hiccup))))
 
 (defn post-page
   [{:keys [title short], :as post}]

@@ -17,7 +17,7 @@
     [:paragraph ""]
     [:link "/" "Home"]
     [:link "/tags.gmi" "All Tags"]
-    [:link "https://git.omarpolo.com" "Git repos"]
+    [:link "/pages/projects.gmi" "Projects"]
     [:paragraph ""]
     body
     [:paragraph ""]
@@ -66,6 +66,10 @@
     (when has-next
       [:link (str "/" (inc nth) ".gmi")
        "Older Posts"])))
+
+(defn custom-page [{:keys [body]}]
+  (with-page {}
+    (gemtext/parse body)))
 
 (defn post-page [{:keys [title short] :as post}]
   (with-page {}

@@ -1,0 +1,41 @@
+# star-platinum
+
+It's a key binding manager for X11.  It lets you assign keys on other application and bind custom action to them.  You can execute external commands or send fake keys.  I'm using it to "emacs-ify" firefox, but can do more.
+
+Let's take a look at a sample configuration file
+
+```
+match all
+on "C-<F5>" do exec 'notify-send "hello world"'
+
+match class 'Firefox'
+match class 'Chromium-browser'
+on "C-w" do "C-x"
+on "M-w" do "C-c"
+on "C-y" do "C-v"
+```
+
+I binded globally control+F5 to that command, and on firefox and chromium I've re-binded control-w to cut, alt-w to copy and control-y to paste.  The key syntax is heavily inspired by emacs.
+
+=> https://git.omarpolo.com/star-platinum star-platinum git repository
+
+You can fetch the sources with
+```
+git clone https://git.omarpolo.com/star-platinum
+```
+or via the github mirror
+```
+git clone https://github.com/omar-polo/star-platinum
+```
+
+To build you need a C compiler (anything from GCC 4.2 onward should work – that is, anything from the last 15 years), lex/flex, yacc/bison and make.  Check out the README for more information on building.
+
+## Planned work
+
+This is a sort of TODO list of things I want to develop.
+
+* bind keys directly on the windows
+I'm currently binding the key globally and send fake copy of the event if the window doesn't match.  But binding the keys globally can interfere with other programs that, by defaults, ignores fake keys (like XTerm).
+
+* define state / better keymap
+I should introduce keymaps.  This should let me allow arbitrary keys, like "C-x C-s", and also introduce the idea of "states" for our vi friends.

@@ -1,0 +1,6 @@
+# CREST
+
+crest(1) is a REPL for HTTP.  It has a nice (in my opinion) grammar and that's that.
+
+=> https://git.omarpolo.com/crest       git repository
+=> https://github.com/omar-polo/crest   github mirror

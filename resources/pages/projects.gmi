@@ -1,0 +1,15 @@
+# Projects
+
+Here are some projects I'm working on.
+
+=> star-platinum.gmi    star-platinum - take control of your applications, one key at the time
+It's a keybinding manager for X11.  It lets you assign keys on other application and bind custom action to them.  You can execute external commands or send fake keys.  I'm using it to "emacs-ify" firefox, but can do more.
+
+=> gmid.gmi             gmid - dead simple zero configuration gemini server
+(If you're browsing this page over gemini this is the server that you're talking to.)  A simple, zero-conf, gemini server for static content.  Written for fun with libtls.
+
+=> crest.gmi            CREST - see your rest endpoints
+Interactive REPL for HTTP requests with a simple and intuitive language.
+
+=> sam-el.gmi           sam.el - An editor for the best OS
+sam.el is an implementation of the text editor sam for plan9 for emacs.  It's still far, far away from being usable.
