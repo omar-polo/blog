@@ -9,11 +9,10 @@
     [:verbatim
 "                       _
  _   _ _   _ _ __ ___ | |__
-| | | | | | | '_ ` _ \\| '_ \\
-| |_| | |_| | | | | | | | | |
+| | | | | | | '_ ` _ \\| '_ \\    Writing about things,
+| |_| | |_| | | | | | | | | |   sometimes.
  \\__, |\\__,_|_| |_| |_|_| |_|
  |___/"]
-    [:paragraph "Writing about things, sometimes."]
     [:paragraph ""]
     [:link "/" "Home"]
     [:link "/tags.gmi" "All Tags"]
