@@ -12,4 +12,4 @@ It's a keybinding manager for X11.  It lets you assign keys on other application
 Interactive REPL for HTTP requests with a simple and intuitive language.
 
 => sam-el.gmi           sam.el - An editor for the best OS
-sam.el is an implementation of the text editor sam for plan9 for emacs.  It's still far, far away from being usable.
+sam.el is an implementation of the text editor sam from plan9 for emacs.  It's still far, far away from being usable.
