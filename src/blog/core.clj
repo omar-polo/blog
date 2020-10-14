@@ -60,6 +60,7 @@
              "resources/out/gemini/pages"
              "resources/out/gemini/post"
              "resources/out/gemini/tag"
+             "resources/out/gemini/img"
              "resources/out/http"
              "resources/out/http/css"
              "resources/out/http/pages"
@@ -126,24 +127,19 @@
         (rss/feed @posts)))
 
 (defn copy-dir
-  "Copy the content of resources/`dir` to resources/out/`dir`, assuming
+  "Copy the content of resources/`dir` to resources/out/`proto`/`dir`, assuming
   these two directories exists.  It does not copy recursively."
-  [dir]
+  [dir proto]
   (let [in (io/file (str "resources/" dir "/"))
-        out         (str "resources/out/http/" dir "/")]
+        out         (str "resources/out/" proto "/" dir "/")]
     (doseq [f (->> in file-seq (filter #(.isFile %)))]
       (io/copy f (io/file (str out (.getName f)))))))
-
-(comment
-  (copy-dir "img")
-  (io/copy (io/file "resources/img/unbound-dashboard.png")
-           (io/file "resources/out/http/img/unbound-dashboard.png"))
-)
 
 (defn copy-assets
   "Copy css and images to their places"
   []
-  (copy-dir "img")
+  (copy-dir "img" "http")
+  (copy-dir "img" "gemini")
   (copy-file "resources/favicon.ico" "resources/out/http/favicon.ico")
   (copy-file "resources/css/style.css" "resources/out/http/css/style.css"))
 
