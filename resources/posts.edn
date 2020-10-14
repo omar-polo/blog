@@ -22,13 +22,14 @@
   :short    "hotplug my lazyness"
   :xkcd     1319
   :gemtext? true}
- {:title "EMMS"
-  :slug  "emms"
-  :date  "2020/09/20"
-  :tags  #{:emacs :elisp}
-  :short "How I learned to stop worrying and love the hydra/emacs/whatever"
-  :music {:title "Kaerimichi"
-          :url   "https://www.youtube.com/watch?v=2OC6ARG6fZA"}}
+ {:title    "EMMS"
+  :slug     "emms"
+  :date     "2020/09/20"
+  :tags     #{:emacs :elisp}
+  :short    "How I learned to stop worrying and love the hydra/emacs/whatever"
+  :music    {:title "Kaerimichi"
+             :url   "https://www.youtube.com/watch?v=2OC6ARG6fZA"}
+  :gemtext? true}
  {:title "Using IP addresses to assume the language is dumb"
   :slug  "ip-to-assume-language-dumb"
   :date  "2020/08/04"
