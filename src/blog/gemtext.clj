@@ -132,6 +132,27 @@
      thing)
     (.toString sw)))
 
+(defn html-escape
+  "Escape HTML entities in `str`"
+  [str]
+  (str/escape str
+              {\< "&lt;"
+               \> "&gt;"
+               \& "&amp;"}))
+
+(defn- link->html
+  "Convert a (gemtext) link an HTML element.  If the link is pointing to
+  an image (guessed by href) transform it into an image, otherwise
+  return a (HTML) link."
+  [[_ href text]]
+  (let [text (html-escape text)]
+    (if (re-matches #".*\.(jpg|jpeg|png|gif)" href)
+      [:p [:a {:href href}
+           [:img {:src href
+                  :alt text}]]]
+      [:p.link [:a {:href href}
+                text]])))
+
 (defn to-hiccup [doc]
   (let [l (atom [])]
     (walk/prewalk
@@ -143,7 +164,8 @@
              (vector? t))
          (if-not (keyword? (first t))
            t
-           (let [[type a b] t]
+           (let [[type a & _] t
+                 a            (html-escape a)]
              (swap! l conj
                     (case type
                       :verbatim   [:pre [:code a]]
@@ -152,7 +174,7 @@
                       :h3         [:h3 a]
                       :li         [:ul [:li a]] ;; TODO!
                       :blockquote [:blockquote a]
-                      :link       [:p.link [:a {:href a} b]]
+                      :link       (link->html t)
                       :paragraph  [:p a]))
              nil))))
      doc)
