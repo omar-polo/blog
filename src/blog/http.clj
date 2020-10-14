@@ -7,10 +7,12 @@
    [hiccup.page :refer [html5 include-css]]
    [commonmark-hiccup.core :refer [markdown->hiccup default-config]]))
 
-(defn link-item [{:keys [url text]}]
-  [:li [:a {:href url} text]])
+(defn link-item [{:keys [url text title]}]
+  [:li [:a (cond-> {:href url}
+             title (assoc :title title))
+        text]])
 
-(defn header [{:keys [tags]}]
+(defn header [{:keys [skip-banner?]}]
   (list
    [:header
     [:nav
@@ -18,13 +20,15 @@
       (link-item {:url "/", :text "Home"})
       (link-item {:url "/tags.html", :text "All Tags"})
       (link-item {:url "/pages/projects.html", :text "Projects"})
-      (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"})]]
-    [:div
-     [:h1 [:a {:href "/"} "yumh"]]
-     [:p "writing about things, sometimes."]]]))
+      (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"
+                  :title "This website in the gemini space."})]]
+    (when-not skip-banner?
+      [:div
+       [:h1 [:a {:href "/"} "yumh"]]
+       [:p "writing about things, sometimes."]])]))
 
 (defn with-page
-  [{:keys [title class description], :as d} & body]
+  [{:keys [title class description skip-banner?], :as d} & body]
   (html5 {:lang "en"}
    [:head
     [:meta {:charset "utf8"}]
@@ -52,6 +56,19 @@
     [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
               :async true
               :src "//goatcounter.omarpolo.com/count.js"}]]))
+
+(defn link->images
+  "traverse `doc` and replace every link to an image to an `img` tag."
+  [doc]
+  (walk/prewalk
+   (fn [item]
+     (if-not (and (vector? item) (= (first item) :a))
+       item
+       (let [[_ {:keys [href] :as attrs} text] item]
+         [:p
+          [:a attrs
+           [:img {:src href
+                  :alt text}]]])))))
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
@@ -109,7 +126,8 @@
         "Older Posts »"])]))
 
 (defn custom-page [{:keys [title body]}]
-  (with-page {:title title}
+  (with-page {:title        title
+              :skip-banner? true}
     ;; warning: hack ahead
     (walk/prewalk
      (fn [item]
