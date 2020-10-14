@@ -216,6 +216,7 @@ p {
   margin: 1rem 0;
   text-align: justify;
   hyphens: auto;
+  white-space: pre-wrap;
 }
 
 p, li {
@@ -258,7 +259,7 @@ code {
 pre {
   position: relative;
   padding: 20px;
-  overflow: visible;
+  overflow-x: auto;
   border-width: 1px;
   border-color: #999999;
   border-style: solid;
