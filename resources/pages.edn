@@ -7,4 +7,6 @@
  {:title "crest - see your rest endpoints"
   :slug  "crest"}
  {:title "sam.el - An editor for the best OS"
-  :slug  "sam-el"}]
+  :slug  "sam-el"}
+ {:title "mymenu - a menu of mine"
+  :slug  "mymenu"}]

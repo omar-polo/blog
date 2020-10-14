@@ -1,0 +1,62 @@
+# mymenu
+> a menu of mine
+
+mymenu is a simple, dmenu-inspired, menu for X11.  It was written because of NIH, because I was bored, and because it was the perfect opportunity to learn more about X11 and xlib.  Jokes aside, is a fully functional and very customizable menu that I use every day.
+
+=> https://git.omarpolo.com/mymenud     Git repo
+=> https://github.com/omar-polo/mymenu  GitHub mirror
+
+It supports two layout: a vertical one (like rofi) and one horizontal (like dmenu).  Various aspects are customizables: color, transparency, borders and window placement.  It is very easily scriptable, and in the default repo you’ll find some example script (both in the manpage and in the scripts folder).  Of course, you can easily adapt your dmenu/rofi scripts to mymenu if you want.
+
+For instance, here’s what I’m currently using.  It has submenu and custom actions, so it could be a good example.
+
+```
+#!/bin/ksh
+
+a-menu() {
+	mymenu -f 'Go Mono-11' -l vertical -p '% ' \
+	       -W 50% -H 30% -P 10 -x center -y center \
+	       -C '#ffffea' -c '#000' -T '#ffffea' \
+	       -t '#000' -S '#000' -s '#fff' -b 3 \
+	       -a
+}
+
+# pass
+p() {
+	prefix=${PASSWORD_STORE_DIR:-~/.password-store}
+	set -A files -- "$prefix"/**/*.gpg "$prefix"/**/**/*.gpg
+	typeit=${1:-yes}
+
+	if p=$(printf '%s\n' ${files[@]} | sed -e 's/\.gpg$//' -e "s,^$prefix/,," | a-menu); then
+		if [ "$typeit" = yes ]; then
+			pass show "$p" | { IFS= read -r pass; printf %s "$pass"; } |
+				xdotool type --clearmodifiers --file -
+		else
+			pass show --clip "$password"
+		fi
+	fi
+}
+
+# exec
+e() {
+	if ! x=$(a-menu); then
+		return
+	elif [ "$x" = "pass" ]; then
+		p yes
+	elif [ "$x" = "pass copy" ]; then
+		p nope
+	elif [ "$x" = "keep" ]; then
+		exec keepassxc
+	else
+		exec $x
+	fi
+}
+
+(
+	echo keep
+	echo firefox
+	# ...
+	echo pass
+	echo pass copy # not "copy pass" so it's after pass
+) | e
+```
