@@ -2,7 +2,7 @@
 
 gmid is a small, almost no-dependencies, gemini server for static content.  I wrote it because I needed one and I disliked the ones that I found (or I wasn't able to compile them)
 
-It's a very short C program (less than 500 lines of code at the moment), that uses libtls (a GREAT tls library from the OpenBSD folks.)
+It's a very short program (less than 800 lines of C code at the moment), that uses libtls (a GREAT tls library from the OpenBSD folks.)
 
 It doesn't support virtual hosts (it completely ignores the host part of the requested URL) and can only serve static content.
 
@@ -21,14 +21,11 @@ git clone https://github.com/omar-polo/gmid
 
 This is mostly a TODO/wish list of things, just to get an idea of what I'm gonna do (and to remind to myself too).
 
-* performance
-I don't want to over-engineer this, but at least I would like to replace the naïve accept-read-write loop with a slightly more sophisticated one based on poll(2).
-
-* MIME types
-At the moment I'm serving every file with the text/gemini MIME type.  It's still OK for my current use case, but I need to fix this.
-
 * virtual hosts
-mapping hosts to different directories would be really handy
+mapping virtual hosts to different directories would be really handy.
+
+* dual stack — serving over both ipv4 and ipv6
+doesn’t really need an explanation.
 
 * directory listings
 It's currently not supported, and I'm not even sure it could be useful.
