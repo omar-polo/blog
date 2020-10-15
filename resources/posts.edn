@@ -1,4 +1,10 @@
-[{:title    "Parsing Gemtext with Clojure"
+[{:title    "gmid"
+  :slug     "gmid"
+  :date     "2020/10/15"
+  :tags     #{:c :gemini}
+  :short    "adventures in network programming"
+  :gemtext? true}
+ {:title    "Parsing Gemtext with Clojure"
   :slug     "parsing-gemtext-with-clojure"
   :date     "2020/10/03"
   :tags     #{:clojure :gemini}

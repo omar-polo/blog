@@ -1,0 +1,147 @@
+These days I’m building a gemini server called gmid.
+
+Original name, uh?
+
+(I hope I’m not stealing the name from someone else)
+
+gmid is a simple, zeroconf gemini server for static content.  At the moment it doesn’t even handle virtual hosts, but it’s working fine for my use-case (serving a statically-generated blog).
+
+=> https://git.omarpolo.com/gmid        gmid repo
+=> https://github.com/omar-polo/gmid    github mirror
+
+I had a lot of fun writing it, so I thought to write a post, describing various implementation choices.  I don’t know about you, but I usually don’t have the chance to write a server :)
+
+
+## Where the journey begins
+
+=> https://git.omarpolo.com/gmid/tree/gmid.c?id=4d4f0e19acf862d139c9864de8510c21b5538e9c        First (running) version
+
+(it’s not technically the first commit because of a name clash on sendfile(2) on linux/FreeBSD that prevented the server from compile)
+
+The first version, with its 416 lines of code, was, surprisingly, usable.  It’s a dead-simple implementation that uses blocking I/O on a single thread, so it’s not exactly the fastest implementation out there, and it always used the “text/gemini” MIME type for every response, but hey, it worked.
+
+
+### A brief excursus on libtls
+
+I’m happy of the choice to use libtls: if you read the source code (the main, the loop and send_file functions in particular) you’ll see that it’s almost like the usual file API except for a tls_ prefix before.
+
+libts needs to be initialized:
+
+```
+/* excerpt from main */
+struct tls *ctx = NULL;
+struct tls_config *conf;
+
+if ((conf = tls_config_new()) == NULL)
+	err(1, "tls_config_new");
+
+if (tls_config_set_cert_file(conf, "cert.pem") == -1)
+	err(1, "tls_config_set_cert_file: %s", cert);
+
+if (tls_config_set_key_file(conf, "key.pem") == -1)
+	err(1, "tls_config_set_key_file: %s", key);
+
+if ((ctx = tls_server()) == NULL)
+	err(1, "tls_server");
+
+if (tls_configure(ctx, conf) == -1)
+	errx(1, "tls_configure: %s", tls_error(ctx));
+```
+
+then it needs to allocate a ctx for every client
+
+```
+/* from loop() */
+int fd;
+struct tls *clientctx;
+
+/* … */
+
+if ((fd = accept(sock, (struct sockaddr*)&client, &len)) == -1)
+	err(1, "accept");
+
+if (tls_accept_socket(ctx, &clientctx, fd) == -1) {
+	warnx("tls_accept_socket: %s", tls_error(ctx));
+	continue;
+}
+/* XXX: handle the client */
+tls_close(clientctx);
+tls_free(clientctx);
+close(fd);
+```
+
+and then we can use tls_write, tls_read and tls_close as you may imagine:
+
+```
+/* from send_file */
+while (w > 0) {
+	if ((t = tls_write(ctx, buf + i, w)) == -1) {
+		warnx("tls_write (path=%s) : %s", fpath, tls_error(ctx));
+		goto exit;
+	}
+	w -= t;
+	i += t;
+}
+```
+
+I don’t know how it is to use OpenSSL API for TLS, but I really like the libtls interface (and its documentation!)
+
+
+## poll(2) to the rescue
+
+=> https://git.omarpolo.com/gmid/tree/gmid.c?id=592fd6245350595319e338ef49984a443b818f16        poll-based event loop
+
+Having a working server is neat, but having a working server that can handle more than one client at the same time is even better.
+
+One can use kqueue, libevent, libev, or other libraries to handle multiple clients, but one of the main point of this project was, other than having fun, keep it simple.  For that reason, I excluded pthread, libevent and other libraries.  You can directly use kqueue, but that it’s only for the BSDs.  Or you can use epoll or one of the thousand alternatives, but that it’s linux-only.
+
+What remains?  In POSIX AFAIK only select(2) and poll(2).  But select(2) is ugly, so I went with poll(2).
+
+The challenge here was to rewrite the code to handle asynchronous I/O.
+
+When you’re dealing with synchronous I/O you write(2), that calls block, and when it has finished it returns, and you write(2) again.  But when you’re writing asynchronous I/O you write something, the kernel tells you that socket wasn’t ready for writing and so you have to wait and retry later.  The advantage is that in the meantime you can handle other clients, improving the throughtput of your program.
+
+In my case it meant that send_file, the function that does the most of the work, now can be “suspended” and “resumed”.  That meant that now I have a state machine for every client, that goes like this
+
+```
+                           ,--------.
+client open a connection ->| S_OPEN |
+                           `--------'
+                               |
+                    client sends the request
+                               |
+                               v
+                       ,----------------.
+                       | S_INITIALIZING |  send the response header
+                       `----------------'
+                               |
+                        the response has
+                            a body?
+                            /     \
+                           /       \
+                          /         \
+                         no         yes
+                         |           |
+                         |           v
+                         |     ,-----------.
+                         |     | S_SENDING |  send the whole file
+                         |     `-----------'
+                         |           /
+                         v          /
+                   ,-----------.   /
+                   | S_CLOSING |<-'
+                   `-----------'
+```
+
+(I couldn't avoid to make a graph, I love ASCII diagrams)
+
+I had to use all those states because at any point the network buffer may be full and we may need to recover from that point later.  DFA are a simple way to code this, so I went with them.
+
+There was an interesting bug, where I didn't change the state from S_INITIALIZING to S_SENDING, and a chunk of the file was transmitted twice.  It was hard to find because it would only happen with “big files” (i.e. images), because the pages I’m serving all fits in the network buffer that the kernel allocates.
+
+
+## More features
+
+Then I added the support for MIME types (the server looks at the file extensions and chooses an appropriate MIME type) and used memory mapped I/O to read local files (it should make better user of the kernel VM subsystem).
+
+I’m now trying to support both ipv4 and ipv6, and then I’ll take a look at implementing virtual hosts.
