@@ -43,6 +43,7 @@
     (header d)
     [:main body]
     [:footer
+     [:p "text: CC-BY-SA-4.0; code: ISC (unless specified otherwise)"]
      [:p "Blog proudly generated with "
       [:a {:href "https://git.omarpolo.com/blog/"}
        [:code "(clojure)"]]]]

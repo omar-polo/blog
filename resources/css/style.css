@@ -343,6 +343,10 @@ footer {
   text-align: center;
 }
 
+footer p {
+  margin: 0;
+}
+
 
 /* dark theme */
 @media (prefers-color-scheme: dark) {
