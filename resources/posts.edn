@@ -3,7 +3,10 @@
   :date     "2020/11/05"
   :tags     #{:emacs}
   :short    "making buffers go to fu^W side-window themself."
-  :gemtext? true}
+  :gemtext? true
+  :music    {:title "I Will Take Him"
+             :by    "Grant Lee Buffalo"
+             :url   "https://www.youtube.com/watch?v=q1-qPdkJgNM"}}
  {:title    "gmid"
   :slug     "gmid"
   :date     "2020/10/15"
