@@ -37,8 +37,9 @@
      [:paragraph ""])
    [:paragraph (str "Written by Omar Polo on " (time/fmt-loc date)
                     (when music
-                      (str " while listening to " (:title music) (when-let [by (:by music)]
-                                                                   (str " by " by)) ))
+                      (str " while listening to “" (:title music) "”"
+                           (when-let [by (:by music)]
+                             (str " by " by)) ))
                     ".")]
    [:paragraph "Tagged with:"]
    (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
