@@ -6,21 +6,22 @@
    [commonmark-hiccup.core :refer [markdown->hiccup default-config]]
    [hiccup.core :as hiccup]))
 
-(defn item [{:keys [title date slug tags short body gemtext?]}]
-  (let [link (str "https://www.omarpolo.com/post/" slug ".html")]
+(defn item [linkfn {:keys [title date slug tags short body gemtext?]}]
+  (let [link (linkfn slug)]
     [:item
      [:title title]
-     [:description
-      [:-cdata
-       (hiccup/html
-        (if gemtext?
-          (-> body gemtext/parse gemtext/to-hiccup)
-          (markdown->hiccup default-config body)))]]
+     (when body
+       [:description
+        [:-cdata
+         (hiccup/html
+          (if gemtext?
+            (-> body gemtext/parse gemtext/to-hiccup)
+            (markdown->hiccup default-config body)))]])
      [:guid link]
      [:link link]
      [:pubDate (time/fmt-rfc-2822 date)]]))
 
-(defn feed [posts]
+(defn feed [linkfn posts]
   (indent-str
    (sexp-as-element
     [:rss {:version "2.0" :xmlns:atom "http://www.w3.org/2005/Atom"}
@@ -30,4 +31,5 @@
       [:link "https://www.omarpolo.com"]
       ;; fails to validate?
       ;; [:atom:link {:href "https://www.omarpolo.com/rss.xml" :ref "self" :type "application/rss+xml"} nil]
-      (map item posts)]])))
+      (map (partial item linkfn)
+           posts)]])))

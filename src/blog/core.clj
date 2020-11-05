@@ -123,8 +123,13 @@
         (viewfn tag posts)))
 
 (defn render-rss []
+  (spit (str "resources/out/gemini/rss.xml")
+        (rss/feed #(str "gemini://gemini.omarpolo.com/post/" % ".gmi")
+                  (->> @posts
+                       (filter gemini-post)
+                       (map #(dissoc % :body)))))
   (spit (str "resources/out/http/rss.xml")
-        (rss/feed @posts)))
+        (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
 
 (defn copy-dir
   "Copy the content of resources/`dir` to resources/out/`proto`/`dir`, assuming
