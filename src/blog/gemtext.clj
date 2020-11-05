@@ -147,9 +147,11 @@
   [[_ href text]]
   (let [text (html-escape text)]
     (if (re-matches #".*\.(jpg|jpeg|png|gif)" href)
-      [:p [:a {:href href}
-           [:img {:src href
-                  :alt text}]]]
+      [:figure
+       [:a {:href href}
+        [:img {:src href
+               :alt text}]]
+       [:figcaption text]]
       [:p.link [:a {:href href}
                 text]])))
 
