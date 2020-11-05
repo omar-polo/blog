@@ -1,0 +1,34 @@
+I’m not really happy with the management of windows in Emacs.  Certain commands/modes spawn buffers that completely destroys the layout, or there are modes that likes to mess with your layout (org mode and magit in particular — although these at least revert the changes they made).
+
+I’ve taken various precautions to minimise the friction (I have an hydra for other-window, avy and ace-window), but today I want to talk about the last two tools I discovered to mange windows: the display-buffer-alist and the side-window mechanics.
+
+Starting with the display-buffer-alist, as the name says it’s the basic piece of configuration for the placement of the buffers.  It’s an alist (an association list, think of it like a dictionary or like a map), that maps buffer to how you want those buffers to be displayed.  (as always, check the full documentation with C-h v display-buffer-alist).  I still have to exploit this extensively, and for the time being I am using it only to move certain buffers in a special area, known as the “side window”.
+
+The side window is a mechanism in which Emacs places buffers as if they were “panels” at the top, bottom, left or right of the frame.  This is akin to, for instance, the panels of an IDE: where you can have the project tree at the left, a terminal or a debugger at the bottom and some other thing at the right.  Except that Emacs does it better, of course.
+
+=> /img/emacs-side-window.png Screenshot with the *Help* buffer in the side window at the bottom.
+
+The side window is also somehow special: delete-other-window, for instance, will NOT delete the side window.
+
+I won’t go in the details of my current configuration for the display-buffer-alist, since it’s most personal preference and it’s based on a video by Protesilaos (that it’s better at explaining things than me).
+
+=> https://protesilaos.com/codelog/2020-01-07-emacs-display-buffer/ Protesilaos: rules for windows and buffer placement
+
+After using the side-window mechanics for a week, I found that sometimes I want to move an existing buffer in the side window.  What triggered this was the *SQL* buffer: usually I  want the *SQL* buffer to be in its own window (in the Emacs sense) so there is more room for the output of the queries, but in certain situations it’s be better to move it in the side window so it does not get in the way of managing multiple buffers.
+
+I wrote what I think it’s an useful addition to the side-window workflow that I want to share:
+
+```elisp
+(defun my/buffer-to-side-window ()
+  "Place the current buffer in the side window at the bottom."
+  (interactive)
+  (let ((buf (current-buffer)))
+    (display-buffer-in-side-window
+     buf '((window-height . 0.25)
+           (side . bottom)
+           (slot . -1)
+           (window-parameters . (no-delete-other-windows . t))))
+    (delete-window)))
+```
+
+I’ve not yet bound that function to a key because I don’t call it very frequently, but it’s one of those functions that when you really need it, it’s good to have.

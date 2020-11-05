@@ -1,4 +1,10 @@
-[{:title    "gmid"
+[{:title    "Emacs side window"
+  :slug     "emacs-side-window"
+  :date     "2020/11/05"
+  :tags     #{:emacs}
+  :short    "making buffers go to fu^W side-window themself."
+  :gemtext? true}
+ {:title    "gmid"
   :slug     "gmid"
   :date     "2020/10/15"
   :tags     #{:c :gemini}
