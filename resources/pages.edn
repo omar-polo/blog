@@ -6,6 +6,8 @@
   :slug  "gmid"}
  {:title "crest - see your rest endpoints"
   :slug  "crest"}
+ {:title "web interface to the OpenBSD port collection"
+  :slug  "webpkg"}
  {:title "sam.el - An editor for the best OS"
   :slug  "sam-el"}
  {:title "mymenu - a menu of mine"

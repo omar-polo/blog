@@ -1,0 +1,28 @@
+# WebPKG
+
+WebPKG is a web-interface for the OpenBSD ports collection.  It features a full-text search across package names, comment, description and mantainer field, as well as a presentation page for the packages.
+
+=> https://webpkg.omarpolo.com		WebPKG
+=> https://git.omarpolo.com/webpkg	Source code
+=> https://github.com/omar-polo/webpkg	GitHub mirror
+
+On the technical side, WebPKG is a CGI script written in C that uses sqlports, an sqlite database with the data about all the ports.  It was written by leveraging kcgi and sqlbox, so the resulting code base is very short.
+
+=> https://kristaps.bsd.lv/kcgi/ KCGI – minimal CGI and FastCGI library for C/C++
+=> https://kristaps.bsd.lv/sqlbox/ sqlbox – secure database access library
+
+## Building
+
+Requires the two mentioned libraries (kcgi and sqlbox) installed, then a simple
+```
+$ make
+```
+will build everything, as pkg-config is used to obtain the correct CFLAGS/LDFLAGS.
+
+You may need to point the SQLPORTS variable to the sqlports database.
+
+By default
+```
+$ make install
+```
+will used doas to install the files inside /var/www/
