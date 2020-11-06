@@ -91,6 +91,8 @@
   (with-page {}
     [:h2 (format "Posts tagged with #%s" tag)]
     [:paragraph ""]
+    [:paragraph "Note: note every post is currently available over Gemini."]
+    [:paragraph ""]
     (map (partial post-fragment {:title-with-link? true})
          (->> posts
               (sort-by :date)
