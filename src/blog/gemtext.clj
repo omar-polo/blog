@@ -146,12 +146,20 @@
   return a (HTML) link."
   [[_ href text]]
   (let [text (html-escape text)]
-    (if (re-matches #".*\.(jpg|jpeg|png|gif)" href)
+    (cond
+      (re-matches #".*\.(jpg|jpeg|png|gif)" href)
       [:figure
        [:a {:href href}
         [:img {:src href
                :alt text}]]
        [:figcaption text]]
+
+      ;; TODO: only for local and absolute URL to my site
+      (re-matches #".*\.gmi" href)
+      [:p.link [:a {:href (str/replace href #"\.gmi$" ".html")}
+                text]]
+
+      :else
       [:p.link [:a {:href href}
                 text]])))
 

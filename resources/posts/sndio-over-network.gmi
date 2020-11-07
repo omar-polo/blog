@@ -1,6 +1,6 @@
 Like I said in the previous entry I don't like to write howtos: the information tend to rot away if not carefully updated, and I don't have all that stamina.  Anyway, I felt like writing this, and so here we are.
 
-=> /post/openbsd-tethering.html Previous entry: Automatic USB Tethering on OpenBSD
+=> /post/openbsd-tethering.gmi Previous entry: Automatic USB Tethering on OpenBSD
 
 Due to events that are outside the scope of this entry, I moved my computer in a place where I cannot comfortably attach a jack to it.  (I realized this only after the rearrangement, shame on me!)
 
