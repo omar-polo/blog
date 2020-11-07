@@ -185,7 +185,8 @@
                       :li         [:ul [:li a]] ;; TODO!
                       :blockquote [:blockquote a]
                       :link       (link->html t)
-                      :paragraph  [:p a]))
+                      :paragraph  (when (and a (not= a ""))
+                                    [:p a])))
              nil))))
      doc)
     (seq @l)))
