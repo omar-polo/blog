@@ -1,0 +1,73 @@
+I’ve just tagged the version 1.3 of gmid, a dead simple zero configuration gemini server, which brings in CGI scripts supports.
+
+=> /pages/gmid.gmi	gmid project page
+=> /post/gmid.gmi	gmid presentation
+
+This gave me the opportunity to play around with CGI scripts, and I had a blast!  I’m currently hosting 3 scripts, written in three different scripting languages, because why not?
+
+### Hello World
+=> gemini://gemini.omarpolo.com/cgi/hello-world Hello World
+
+This was the first script I ran while adding the CGI support.  Is a simple shell script that uses ‘printf’ and ‘echo’.  You can find the “full” source code in the gmid manpage.
+
+Yeah, counting this felt just like cheating…
+
+### OpenBSD manpages
+=> gemini://gemini.omarpolo.com/cgi/man man
+
+It’s like man.cgi, only written in rc – the plan9 shell – and with less features.  It ask the user for a manpage and it will render it.
+
+=> /img/cgi-man-elpher.png How it looks (37.9K)
+
+This also exposed a difference in how plan9ports’ rc and whoever the upstream for the FreeBSD rc package is treat the empty string.
+
+In plan9ports rc, the following code do the right thing™
+
+``` rc
+if (~ $QUERY_STRING '') {
+	echo '10 manpage:^M' # the ^M should be the real CR
+	exit 0
+}
+```
+
+but if you run the same snippet using the rc shell that comes with the FreeBSD rc package, it won’t work.  The workaround is to check for the length of the list, thing that works everywhere fortunately.
+
+``` rc
+if (~ $#QUERY_STRING 0) { # <- added ‘#’ after the sigil 
+	echo '10 manpage:^M'
+	exit 0
+}
+```
+
+For the uninitialised, in rc shell every variabile is a list of string, so a undefined variable is an empty list.  The ‘$#var’ evaluates to the length of the list ‘var’.
+
+This is all due the fact that, while I use OpenBSD on my desktop, for “historical reasons” I’m using FreeBSD on my server.
+
+If you are interested in how to serve the OpenBSD manpages from a system that’s not OpenBSD, I’m not sure what the best option is, but what I did was to download and extract all the sets in a directory, say $HOME/man, than pointed the MANPATH environment variable to $HOME/man/usr/share/man:$HOME/man/usr/X11R6/man.  To finish, I’ve build mandoc and ran makewhatis.  The script is using ‘man’ from ‘mandoc’ and not the system ‘man’.
+
+=> https://mandoc.bsd.lv/ mandoc website
+
+### GemPKG
+=> gemini://gemini.omarpolo.com/cgi/gempkg GemPKG, explore the OpenBSD port catalog
+=> https://webpkg.omarpolo.com  WebPKG, the HTTP version
+
+This is a “port” of another project I worked on recently, WebPKG.  It’s a gemini interface to the OpenBSD port catalog.  It features a full text search across package name, comment, DESCR and maintainer, as well as a package “presentation page” with some links, the whole description and the readme.
+
+The URLs are also intuitive:
+* /cgi/gempkg is the home page
+* /cgi/gempkg/search is the search page
+* /cgi/gempkg/$PATH is the page for the port denoted by ‘$PATH’ (usually category/name, but not always)
+
+=> /img/cgi-gempkg-amfora.png GemPKG Screenshot (32.1K)
+
+This is the biggest of the three scripts, with its whopping 132 lines of python.  It’s powered by the same database I’m using for webpkg, the “official” (I mean, the maintainer is espie@, you can’t get more official than that, amrite?) sqlite database, with an extra virtual table for the full text search.
+
+## Future plans
+
+I don’t really have a clear list of things, but I want for sure to enhance these scripts, ‘man’ in particular.  It would be cool to have structured URLs to reach the manpages, and maybe render the pages as gemtext instead of plain text.  Having the “SEE ALSO” section rendered as a list of links would be really, really useful.
+
+For GemPKG/WebPKG I don’t know what could be added, maybe some sort of listing of the directories? Dunno.
+
+On the gmid side, I definitely want to add support for virtual hosts and automatic certificates generation.  These will hopefully be the 1.4 and 1.5 versions.  Then I’d also like to split gmid into multiple process: I heard that OpenBSD’ httpd(8)/relayd(8) uses privsep to further protect the certificate, I’ll definitely look into that.
+
+Thanks for reading and, as always, patches are welcome.  Just open a PR on github or send me a patch at <op at omarpolo dot com>.

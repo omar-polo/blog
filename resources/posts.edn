@@ -1,4 +1,13 @@
-[{:title    "Emacs side window"
+[{:title    "gmid update, cgi support and services"
+  :slug     "gmid-cgi-and-services"
+  :date     "2020/11/10"
+  :tags     #{:gemini}
+  :short    "status update and cool gemini stuff"
+  :gemtext? true
+  :music    {:title "Piccola Città"
+             :by    "Francesco Guccini"
+             :url   "https://www.youtube.com/watch?v=BjXjgyYU9eU"}}
+ {:title    "Emacs side window"
   :slug     "emacs-side-window"
   :date     "2020/11/05"
   :tags     #{:emacs}
