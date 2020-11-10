@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import sqlite3
 import sys
 import traceback
-import re
+import urllib.parse
 
 query_search = """
 select webpkg_fts.pkgstem,
@@ -43,7 +44,11 @@ def verbatim(alt, text):
 
 def printraw(text):
     for line in text.splitlines():
-        if line.startswith(">") or line.startswith("```") or line.startswith(">") or line.startswith("#"):
+        if line.startswith(">")      \
+           or line.startswith("```") \
+           or line.startswith(">")   \
+           or line.startswith("#")   \
+           or line.startswith("*"):
             print(" ")
         print(line)
 
@@ -53,7 +58,6 @@ script_path = os.environ.get("SCRIPT_NAME")
 path = os.environ.get("REQUEST_RELATIVE")
 
 if not path or path == '/':
-    # home page
     print("20 text/gemini;charset=utf-8\r")
     print("Welcome to GemPKG, the gemini interface to the OpenBSD port collection.")
     print("")
@@ -70,6 +74,7 @@ try:
             print("10 query:\r")
             exit(0)
 
+        query = urllib.parse.unquote(query)
         cursor = conn.execute(query_search, (query,))
 
         print("20 text/gemini;charset=utf-8\r")
@@ -108,6 +113,8 @@ try:
         print(f"=> https://cvsweb.openbsd.org/ports/{stem} CVS web")
         if www:
             print(f"=> {www} WWW")
+        print("")
+        print("Maintainer:", maintainer)
         print("")
         print("## Description")
         printraw(re.sub(r"\n", " ", descr))
