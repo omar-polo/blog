@@ -1,13 +1,13 @@
 #!/usr/bin/env rc
 
-if (~ $QUERY_STRING '') {
+if (~ $#QUERY_STRING 0) {
 	echo '10 manpage:'
 	exit 0
 }
 
 query=`{echo $QUERY_STRING | sed 's/%20/ /g'}
 
-echo '20 text/plain'
+echo '20 text/plain;charset=utf-8'
 echo '# OpenBSD 6.8'
 echo
 echo % man $query
