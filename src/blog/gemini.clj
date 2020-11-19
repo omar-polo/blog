@@ -3,6 +3,17 @@
    [blog.time :as time]
    [blog.gemtext :as gemtext]))
 
+(defn feed-page [posts]
+  (gemtext/unparse
+   (list
+    [:h1 "yumh"]
+    [:blockquote "Writing about things, sometimes"]
+    [:paragraph ""]
+    (for [post posts]
+      (let [{:keys [title date slug]} post
+            url (str "gemini://gemini.omarpolo.com/post/" slug ".gmi")]
+        [:link url (str (time/fmt-iso8601 date) " " title)])))))
+
 (defn with-page [_ & body]
   (gemtext/unparse
    (list

@@ -22,6 +22,13 @@
     (str (.format d pattern)
          " 00:00:00 GMT")))
 
+(defn fmt-iso8601 [d]
+  ;; quoted to indicate UTC, not TZ offset. Also, HH:mm is 00:00
+  ;; because i'm parsing the raw date as LocalDate and not datetime,
+  ;; so there isn't the info about the hour and the minute.
+  (let [pattern (DateTimeFormatter/ofPattern "yyyy-MM-dd'T'00:00'Z'")]
+    (.format d pattern)))
+
 (defn parse [s]
   (LocalDate/parse s pattern))
 

@@ -125,11 +125,14 @@
         (viewfn tag posts)))
 
 (defn render-rss []
-  (spit (str "resources/out/gemini/rss.xml")
-        (rss/feed #(str "gemini://gemini.omarpolo.com/post/" % ".gmi")
-                  (->> @posts
-                       (filter gemini-post)
-                       (map #(dissoc % :body)))))
+  (let [gemposts (->> @posts
+                      (filter gemini-post)
+                      (map #(dissoc % :body)))]
+    (spit (str "resources/out/gemini/rss.xml")
+          (rss/feed #(str "gemini://gemini.omarpolo.com/post/" % ".gmi")
+                    gemposts))
+    (spit (str "resources/out/gemini/rss.gmi")
+          (gemini/feed-page gemposts)))
   (spit (str "resources/out/http/rss.xml")
         (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
 
