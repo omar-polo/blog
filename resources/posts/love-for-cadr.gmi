@@ -1,0 +1,29 @@
+I had this piece of data
+
+``` common-lisp
+(("12345" (("Content-Disposition" "form-data" (("name" . "code"))))))
+```
+
+and I wanted to extract the cons with “name” and “code”.  Armed with my ‘a’s and ‘d’s I wrote (interactively, one letter at a time)
+
+``` common-lisp
+(caaddr (caadar thing))
+```
+
+then I though “two function call is too much”
+
+``` common-lisp
+(caaddaadar thing)
+```
+
+but ‘caaddaadar’ doesn’t exists.
+
+Life sucks even more now.
+
+---
+
+P.S.: yeah, I was trying to extract data from the output of rfc2388:parse-mime.
+
+P.P.S.: yeah, I was trying to extract the wrong thing: “code” is the input name and “12345” is the value.
+
+P.P.P.S.: yup, eventually I replaced that with trivia (pattern matching.)

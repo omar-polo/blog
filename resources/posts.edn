@@ -1,4 +1,10 @@
-[{:title    "gmid update, cgi support and services"
+[{:title    "love for c(a|d)+r"
+  :slug     "love-for-cadr"
+  :date     "2020/11/15"
+  :tags     #{:lisp :shitposting}
+  :short    "caaddaaddaaddaddaa…"
+  :gemtext? true}
+ {:title    "gmid update, cgi support and services"
   :slug     "gmid-cgi-and-services"
   :date     "2020/11/10"
   :tags     #{:gemini}
