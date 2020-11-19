@@ -10,7 +10,8 @@
    [ring.adapter.jetty :as jetty]
    [ring.middleware.content-type :refer [wrap-content-type]]
    [ring.middleware.resource :refer [wrap-resource]])
-  (:import (java.io File))
+  (:import (java.io File)
+           (java.nio.file Files Paths))
   (:gen-class))
 
 (defn copy-file [src dst]
@@ -61,6 +62,7 @@
              "resources/out/gemini/post"
              "resources/out/gemini/tag"
              "resources/out/gemini/img"
+             "resources/out/gemini/cgi"
              "resources/out/http"
              "resources/out/http/css"
              "resources/out/http/pages"
@@ -132,13 +134,13 @@
         (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
 
 (defn copy-dir
-  "Copy the content of resources/`dir` to resources/out/`proto`/`dir`, assuming
-  these two directories exists.  It does not copy recursively."
+  "Copy the content of resources/`dir` to resources/out/`proto`/`dir`,
+  assuming these two directories exists."
   [dir proto]
-  (let [in (io/file (str "resources/" dir "/"))
-        out         (str "resources/out/" proto "/" dir "/")]
-    (doseq [f (->> in file-seq (filter #(.isFile %)))]
-      (io/copy f (io/file (str out (.getName f)))))))
+  ;; java sucks at files
+  (sh "cp" "-a"
+      (str "resources/" dir)
+      (str "resources/out/" proto "/")))
 
 (defn copy-assets
   "Copy css and images to their places"
@@ -147,6 +149,11 @@
   (copy-dir "img" "gemini")
   (copy-file "resources/favicon.ico" "resources/out/http/favicon.ico")
   (copy-file "resources/css/style.css" "resources/out/http/css/style.css"))
+
+(defn copy-cgi
+  "Copy cgi scripts to their place."
+  []
+  (copy-dir "cgi" "gemini"))
 
 (comment (build)
          (count (filter gemini-post @posts))
@@ -158,6 +165,7 @@
   []
   (create-dirs!)
   (copy-assets)
+  (copy-cgi)
   (render-rss)
   (doseq [[proto ffn ext homefn postfn tagsfn tagfn pagefn]
           [[:http identity ".html" http/home-page http/post-page http/tags-page http/tag-page http/custom-page]
