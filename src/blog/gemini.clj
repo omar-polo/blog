@@ -12,7 +12,7 @@
     (for [post posts]
       (let [{:keys [title date slug]} post
             url (str "gemini://gemini.omarpolo.com/post/" slug ".gmi")]
-        [:link url (str (time/fmt-iso8601 date) " " title)])))))
+        [:link url (str (time/fmt-iso8601 date) " - " title)])))))
 
 (defn with-page [_ & body]
   (gemtext/unparse
