@@ -1,4 +1,12 @@
-[{:title    "love for c(a|d)+r"
+[{:title    "yasnippet and SPC"
+  :slug     "yasnippet-expansions"
+  :date     "2020/12/01"
+  :tags     #{:emacs}
+  :short    "expanding yasnippets"
+  :gemtext? true
+  :music    {:title "Sign of the Cross"
+             :by    "Iron Maiden"}}
+ {:title    "love for c(a|d)+r"
   :slug     "love-for-cadr"
   :date     "2020/11/15"
   :tags     #{:lisp :shitposting}

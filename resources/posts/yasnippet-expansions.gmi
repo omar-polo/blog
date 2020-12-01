@@ -1,0 +1,74 @@
+Snippets are small templates that can be “expanded”, and are generally used to avoid typing scaffolding.  Since they are a common features available on various editors and IDEs, I have confidence the reader has seen them at some point.
+
+Yasnippet is an Emacs package to manage and expand snippets; actually, yasnippet is probably THE Emacs package for snippets.
+
+=> https://github.com/joaotavora/yasnippet Yasnippet repository
+
+(the full setup is at the end of the post)
+
+By default, yasnippet will expand the snippets when the TAB key is pressed.  I found this to be pretty inconvenient.  The TAB key is already used to indent text and to trigger the ‘complete-at-point’, and it happened multiple times that instead of indenting or triggering the completions I expanded a snippet by accident.  This had to be fixed.
+
+Reading the yasnippet manual, I got this idea of using the space to trigger the snippet expansion.  It may seem a bit crazy, but after playing a bit with it I felt that this was the way to go.  To achieve it, one has to bind SPC to the ‘yas-maybe-expand’:
+
+``` elisp
+(define-key yas-minor-mode-map (kbd "SPC") yas-maybe-expand)
+```
+
+and remove the binding for TAB and ‘<tab>’ in ‘yas-minor-mode-map’.
+
+But this isn’t enough, as you may find pretty soon.  Let’s say that you have a snippet called ‘let’ that expands into a full let binding.  That snippet gets expanded also when you type ‘let’ inside a comment or a string, and that’s not what you probably want.
+
+To solve this issue, yasnippet provides a buffer-local variable ‘yas-buffer-local-condition’: it holds a lisp form that gets evaluated before the snippet expansion: if it evaluates to nil the expansion is cancelled (check the documentation for some other values it can return).
+
+``` elisp
+(defun my/inside-comment-or-string-p ()
+  "T if point is inside a string or comment."
+  (let ((s (syntax-ppss)))
+    (or (nth 4 s)                       ;comment
+        (nth 3 s))))                    ;string
+```
+
+‘syntax-ppss’ returns a list with a bunch of syntactical information.  The 4th and 3rd field are if the point is inside a comment or inside a string (respectively).
+
+By setting ‘yas-buffer-local-condition’ to the form (mind you, it’s a quoted list!) '(not (my/inside-comment-or-string-p)) you prevent yasnippet to expand when within comments or strings.
+
+I’m using snippets mostly in LISPs buffers (elisp, common lisp, clojure), and there was still one thing that bothered me.  I have a bunch of snippets for various special forms (defun/defn, let/let*, etc).  Now, if by any chance I type a space after a preexisting ‘let’ (for instance) that let gets expanded AGAIN.  So I have an additional condition to check that I’m not trying to expand something that is at the start of a list.
+
+The full setup is this:
+
+``` elisp
+(use-package yasnippet
+  :bind (:map yas-minor-mode-map
+         ("<tab>" . nil)
+         ("TAB" . nil))
+  :custom (yas-wrap-around-region t)
+  :config
+  (yas-global-mode +1)
+  (define-key yas-minor-mode-map (kbd "SPC") yas-maybe-expand)
+
+  (defun my/inside-comment-or-string-p ()
+    "T if point is inside a string or comment."
+    (let ((s (syntax-ppss)))
+      (or (nth 4 s)                     ;comment
+          (nth 3 s))))                  ;string
+
+  (defun my/in-start-of-sexp-p ()
+    "T if point is after the first symbol in the list."
+    (save-excursion
+      (backward-char (length (current-word)))
+      (= ?\( (char-before))))
+
+  (defun my/yas-fix-local-condition ()
+    (setq yas-buffer-local-condition
+          '(not (or (my/inside-comment-or-string-p)
+                    (my/in-start-of-sexp-p)))))
+
+  (mapcar (lambda (mode-hook)
+            (add-hook mode-hook #'my/yas-fix-local-condition))
+          '(emacs-lisp-mode-hook
+            lisp-interaction-mode-hook
+            clojure-mode-hook
+            c-mode-hook)))
+```
+
+There’s still an issue that I’m not sure how to fix: prevent the expansion inside specific form.  For instance, writing a ‘cl-loop’ it isn’t strange to type ‘while’, but it shouldn’t get expanded, but there are various situations where snippet shouldn’t be expandend, and since these are diverse and pretty rare, I’m not bothering (not for now at least).  To prevent a snippet from expansion you can always type the space as C-q SPC.
