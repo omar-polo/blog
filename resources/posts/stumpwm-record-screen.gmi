@@ -1,0 +1,80 @@
+Today I chatted with a friend about screen recording.  He had a problem with a the record script he was using, and this made me thinking about how I record the screen.
+
+I find useful to share some little screen records, to showcase something I'm doing with friends usually.  Some time ago I quickly wrote a small record script:
+
+``` sh
+#!/bin/ksh
+
+if ! s=$(slop -f "%x %y %w %h"); then
+	exit 1
+fi
+
+set -A s -- $s
+
+x=${s[0]}
+y=${s[1]}
+w=${s[2]}
+h=${s[3]}
+
+exec ffmpeg -y \
+	-f x11grab \
+	-s ${w}x${h} \
+	-framerate 30 \
+	-i $DISPLAY+${x},${y} \
+	${1:?missing output file}
+```
+
+Frankly, it's ugly.  But was quickly to write, it worked, and I had better things to do than improve it.
+
+The only drawback is the need to keep an xterm open while recording is ugly.  So why don't integrate this into my window manager?
+
+I'm using stumpwm: it's a window manager written in common lisp.  Being written in lisp, it's exceptionally good at interactive development.  And trust me, having a REPL connected to your window manager is really cool at times like this.  Being able to fire up Emacs, connect it to the window manager, drafting functions and commands and refining them into something that works, all without interruption (reload the window manager, restart the thing, recompile stuff...) is pretty cool, not gonna lie.
+
+So, without further ado, here's the snippet in all its glory:
+
+``` common-lisp
+(defparameter *my/record-process* nil
+  "Holds the record process if its running, nil otherwise.")
+
+(defun my/select-area ()
+  "Select an area using slop, returning (x, y, w, h) or nil."
+  (ignore-errors
+   (mapcar #'parse-integer
+           (cl-ppcre:split " "
+                           (with-output-to-string (out)
+                             (uiop:run-program "slop -f \"%x %y %w %h\""
+                                               :ignore-error-status t
+                                               :output out))))))
+
+(defcommand my/record () ()
+  "Record (or stop the recording) of the screen (or part of)."
+  (ignore-errors
+   (if *my/record-process*
+       (progn (uiop:terminate-process *my/record-process*)
+              (setq *my/record-process* nil))
+       (when-let (filename (completing-read (current-screen) "record into file: " nil
+                                            :initial-input "/tmp/record.mkv"))
+         (destructuring-bind (x y w h) (my/select-area)
+           (let ((proc (format nil
+                               "exec ffmpeg -y -f x11grab -s ~ax~a -framerate 30 -i :0.0+~a,~a ~a"
+                               w h x y
+                               filename)))
+             (setf *my/record-process*
+                   (uiop:launch-program proc))))))))
+```
+
+(The exec before ffmpeg is needed because otherwise uiop:terminate-process will kill the shell and not ffmpeg.)
+
+It asks for a file name, then uses slop to select an area, or a window, just like the original script, and starts ffmpeg.
+
+Those ignore-errors are there because I'm pretty lazy today.  Also, this needs cl-ppcre installed, because I didn't want to roll my own split-string-on-space.  Again, I'm pretty lazy today.
+
+Oh, and there is another small gem: the bar (modeline) is part of the window manager, and we can fully control it.  I added the following customisation to the format of the modeline, and when I'm recording a [rec] label will appear right after the group indicator.
+
+``` common-lisp
+(setf *screen-mode-line-format* (list "[%n] "
+                                      '(:eval (if *my/record-process*
+                                                  "[rec] "
+                                                  ""))
+                                      "%d | %w"))
+```

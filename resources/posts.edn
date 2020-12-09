@@ -1,4 +1,12 @@
-[{:title    "yasnippet and SPC"
+[{:title    "Screen recording from stumpwm"
+  :slug     "stumpwm-record-screen"
+  :date     "2020/12/09"
+  :tags     #{:lisp :stumpwm}
+  :short    "recording the screen, but with parens"
+  :gemtext? true
+  :music    {:title "Deer Dance"
+             :by    "System of a Down"}}
+ {:title    "yasnippet and SPC"
   :slug     "yasnippet-expansions"
   :date     "2020/12/01"
   :tags     #{:emacs}
