@@ -1,3 +1,5 @@
+2020/12/12 edit: typos.
+
 Today I chatted with a friend about screen recording.  He had a problem with a the record script he was using, and this made me thinking about how I record the screen.
 
 I find useful to share some little screen records, to showcase something I'm doing with friends usually.  Some time ago I quickly wrote a small record script:
@@ -26,9 +28,9 @@ exec ffmpeg -y \
 
 Frankly, it's ugly.  But was quickly to write, it worked, and I had better things to do than improve it.
 
-The only drawback is the need to keep an xterm open while recording is ugly.  So why don't integrate this into my window manager?
+The drawback is the need to keep an xterm open while recording.  So why don't integrate this into my window manager?
 
-I'm using stumpwm: it's a window manager written in common lisp.  Being written in lisp, it's exceptionally good at interactive development.  And trust me, having a REPL connected to your window manager is really cool at times like this.  Being able to fire up Emacs, connect it to the window manager, drafting functions and commands and refining them into something that works, all without interruption (reload the window manager, restart the thing, recompile stuff...) is pretty cool, not gonna lie.
+I'm using stumpwm: it's a window manager written in common lisp.  Being written in lisp, it's exceptionally good at interactive development.  And trust me, having a REPL connected to your window manager is really cool at times like this.  Being able to fire up Emacs, connect it to the window manager, drafting functions and commands and refining them into something that works, all without interruptions (reload the window manager, restart the thing, recompile stuff...) is pretty cool, not gonna lie.
 
 So, without further ado, here's the snippet in all its glory:
 
@@ -69,7 +71,7 @@ It asks for a file name, then uses slop to select an area, or a window, just lik
 
 Those ignore-errors are there because I'm pretty lazy today.  Also, this needs cl-ppcre installed, because I didn't want to roll my own split-string-on-space.  Again, I'm pretty lazy today.
 
-Oh, and there is another small gem: the bar (modeline) is part of the window manager, and we can fully control it.  I added the following customisation to the format of the modeline, and when I'm recording a [rec] label will appear right after the group indicator.
+Oh, and there is another small gem: the bar (modeline) is part of the window manager too, so we have fully control over it.  I added the following customisation to the format of the modeline, and when I'm recording a [rec] label will appear right after the group indicator.
 
 ``` common-lisp
 (setf *screen-mode-line-format* (list "[%n] "
