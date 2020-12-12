@@ -33,7 +33,7 @@
     [:paragraph ""]
     [:paragraph ""]
     [:paragraph ""]
-    [:paragraph "-- text: CC-BY-SA-4.0; code: ISC (unless specified otherwise)"]
+    [:paragraph "-- text: CC-BY-SA-4.0; code: MIT (unless specified otherwise)"]
     [:paragraph "Capsule proudly assembled with Clojure"]
     [:link "https://git.omarpolo.com/blog/" "sources"])))
 
