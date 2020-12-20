@@ -6,7 +6,7 @@ Here are some projects I'm working on.
 It's a keybinding manager for X11.  It lets you assign keys on other application and bind custom action to them.  You can execute external commands or send fake keys.  I'm using it to "emacs-ify" firefox, but can do more.
 
 => gmid.gmi             gmid - dead simple zero configuration gemini server
-(If you're browsing this page over gemini this is the server that you're talking to.)  A simple, zero-conf, gemini server for static content.  Written for fun with libtls.
+(If you're browsing this page over gemini this is the server that you're talking to.)  A simple, zero-conf, gemini server for static content with cgi support.  Written for fun with libtls.
 
 => webpkg.gmi		WebPKG - web-interface for the OpenBSD ports collection
 CGI script to search for and visualise package from the OpenBSD port tree.  Supports full-text search across the whole catalogue.

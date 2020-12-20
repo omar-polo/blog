@@ -21,7 +21,6 @@ $ git clone https://github.com/omar-polo/gmid
 This is mostly a TODO/wish list of things, just to get an idea of what I'm gonna do (and to remind to myself too).
 
 * virtual hosts: mapping virtual hosts to different directories would be really handy.
-
 * dual stack: serving over both ipv4 and ipv6
-
+* automatic certificate generation
 * directory listings: it's currently not supported, and I'm not even sure it could be useful.
