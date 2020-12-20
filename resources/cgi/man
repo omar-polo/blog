@@ -1,6 +1,6 @@
 #!/usr/bin/env rc
 
-if (~ $#QUERY_STRING 0) {
+if (~ $QUERY_STRING '') {
 	echo '10 manpage:'
 	exit 0
 }
