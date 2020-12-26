@@ -1,0 +1,101 @@
+In the last days I finally decided to update the URI handling in gmid, and I also took the opportunity to support IRI (Internationalized Resource Identifiers).  The following is the design and implementation of IRIs in gmid.
+
+## The status quo
+
+gmid had a very primitive URI handling.  It had a couple of routines to advance the URI buffer until the start of the path, to override the “?” with a NUL byte and remove every “..” in the path.  Yep, this is all what it did before.  The extracted path was then considered (more or less) an opaque bytestring that was fed directly to openat(2).
+
+The advantages of this approach are that
+* it doesn’t require memory allocations: everything is done in-place.
+* the implementation is very short (about 100 lines of code)
+
+The disadvantage are many, but fundamentally boils down to:
+* can only serve a very limited subset of filenames (smaller than ASCII), basically only [-_A-Za-z0-9] or so.
+
+## URI
+
+I wanted a compliant URI parser, but I also didn’t want to introduce other dependencies.  (I’m only kinda allowing myself to use libtls).  I also wanted something that was simple, and didn’t really implement things that gmid doesn’t need (userinfo data for instance).  So why don’t write one from scratch?
+
+I come up with what I think is a clean and straightforward interface:
+
+``` c
+struct uri {
+	char            *schema;
+	char            *host;
+	char            *port;
+	uint16_t         port_no;
+	char            *path;
+	char            *query;
+	char            *fragment;
+};
+
+int parse_uri(char *str, struct uri *parsed, const char **err);
+```
+
+Like the old parser, also this new one operates in-place.  The given URI string is modified, adding NUL bytes where necessary, and storing internal pointers inside the struct uri.  The advantage is that we don’t need dynamic memory allocations at all: the struct can be allocated on the stack, as well as the buffer for the gemini request (since we know its max size).
+
+We can operate in place because every transformation done to the URI will, effectively, shrink or leave intact its byte size; the URI will never grow bigger after decoding.  (The transformation done are percent-decoding, in which we translate a sequence of three bytes into one, and path cleaning, where we remove various “impurities”).
+
+Internally the parser operates on a struct parser
+
+``` c
+struct parser {
+	char		*uri;
+	struct uri	*parsed;
+	const char	*err;
+};
+```
+
+There are a bunch of functions, that are more or less direct implementation of the ABFN rules from RFC3986.  They all advance the uri pointer while parsing, storing the start of what they parse (scheme, host, port, ...) in the parsed struct field and store a NUL byte when they encounter the end of their field.  For instance, parse_scheme will store the start of the URI in the scheme field of the struct uri, then advance the buffer until it finds either an invalid character or the marker ://, then overwrite the colon with a NUL byte, advance past the double slashes and return: after a call to parse_schema, parsed->schema points to a valid NUL-terminated string.
+
+Once the path has been parsed, it gets cleaned.  The “cleaning” algorithm should be equivalent to the one described in the RFC, but its more similar to Go’ path.Clean function.  It works as follows:
+
+* Replace multiple slashes with a single one (e.g. // → /)
+* Eliminate each . path name element (e.g. /foo/./bar → /foo/bar)
+* Eliminate each inner .. along with the non-.. element that precedes it (e.g. /foo/../bar → /bar)
+* Eliminate trailing .. if possible (e.g. /foo/.. → /)
+
+The RFC proposed algorithm operates in a single pass, this does more passes across the string but it seems a bit simpler conceptually speaking.
+
+## IRI upgrade
+
+So yeah, I got a new URI parser and I’m happy.  But what about IRIs?  There were various discussion about this on the gemini mailing list, and some have talked about how hard are IRIs.  I wanted to explore this a bit, so I gave it a try.
+
+If you read the RFC3987, you’ll find out that the fundamental difference between URI and IRI, for the sake of a parser, boils down to what character are allowed in the “unreserved” class.  (The text is slightly more complex, as some UNICODE characters are allowed in the query part but not on the path part, but I decided to blatantly ignore this distinction.)
+
+=> https://tools.ietf.org/html/rfc3987 RFC3987 (http)
+=> gemini://tanso.net/rfc/rfc3987.txt RFC3987 (gemini)
+
+For gmid the real modification was to write a valid_multibyte_utf8 function that advance the pointer over a valid UTF-8 multibyte sequence (plus error checking) and trasform
+``` c
+	while (UNRESERVED(*p->uri)
+	    || SUB_DELIMITERS(*p->uri)
+	    || *p->uri == '/'
+	    || *p->uri == '?'
+	    || parse_pct_encoded(p))
+		p->uri++;
+```
+into
+``` c
+	while (UNRESERVED(*p->uri)
+	    || SUB_DELIMITERS(*p->uri)
+	    || *p->uri == '/'
+	    || *p->uri == '?'
+	    || parse_pct_encoded(p)
+	    || valid_multibyte_utf8(p))
+		p->uri++;
+```
+done.
+
+(To be fair, I’m not 100% happy with my current valid_multibyte_utf8, but that’s a story for another entry)
+
+Of coures I’m expecting UTF-8 encoded IRIs, no time to waste on other encodings.
+
+All the good properties of the URI parser are preserved, since we’re only extending the range of accepted byte-sequence.
+
+## Future plans
+
+I’m planning to do some more cleaning of the code and strengthen a bit the checks in valid_multibyte_utf8, and tag a new release.
+
+Otherwise, I can consider this to be finished.  I need to go and read more about punycoding, and investigate if/how is needed in the context of IRIs, and if it makes sense to handle them even in an IRI context.
+
+Othar than that, happy new year, and see you in January!

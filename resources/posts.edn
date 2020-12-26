@@ -1,4 +1,11 @@
-[{:title    "Screen recording from stumpwm"
+[{:title    "IRIs are not hard!"
+  :slug     "iris-are-not-hard"
+  :date     "2020/12/26"
+  :tags     #{:c :gemini}
+  :short    "design and implementation of the IRI parser for gmid"
+  :gemtext? true
+  :music    {:title "Houseki no Kuni - OST Disc 1"}}
+ {:title    "Screen recording from stumpwm"
   :slug     "stumpwm-record-screen"
   :date     "2020/12/09"
   :tags     #{:lisp :stumpwm}
