@@ -159,6 +159,7 @@
   (copy-dir "cgi" "gemini"))
 
 (comment (build)
+         (copy-cgi)
          (count (filter gemini-post @posts))
          (gemini/post-page (first @posts))
          )

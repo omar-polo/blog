@@ -1,0 +1,210 @@
+I’m starting to enjoy Emacs Lisp (elisp) more and more.  I’m not exactly sure why (well, I have a soft spot for LISP, regardless of its incarnation), because I think Common LISP, Clojure or Scheme are better programming languages overall, but in these last months I ended up writing more elisp than anything else.
+
+The point is, I think, that elisp is incredibly fun.  I’ve never seen a LISP machine in real life, so I can’t compare the experience of working there to using Emacs, but the feeling of interactiveness (is that a word?  flyspell beg to differ, but it gives the idea) it has is incredible.
+
+You have this interactive system, programmable (and re-programmable) at hand.  You can literally change almost any behaviour at runtime, with an immediate feedback.  I don’t think I can convey how much fun is Emacs for me.
+
+You shouldn’t be surprised when you see peoples running almost everything (even their window manager!) inside emacs.  The joy it gives being able to adjust and configure ANYTHING, even the smallest detail, with your knowledge and capacity being almost the only limitations, makes you want to live inside it.
+
+One thing that is sometimes overlooked though, especially by people who haven’t used it, is how Emacs is an interface for your operating system, rather than being a replacement.  (Yes, I know the old joke about the OS lacking a decent editor, but it’s a joke, for the most part at least.)
+
+Emacs makes it really easy to make various part of your system interactive.  Two good examples are dired and VC.  Dired is the DIRectory EDitor; under the hood it run ls(1) and makes its output interactive, so you can sort files by various means, deleting/renaming and tagging bunch of files at once et cetera. VC is a generic Version Control library that supports various version control systems (git, subversion, RCS, CVS and many more) under an unified interface, it’s really cool.
+
+I tried, as an exercise to improve my understanding, to write an interactive interface for sndio(8), the OpenBSD audio server.  One usually interacts with sndio(8) via sndioctl(1).  For instance, to list all the input/outputs you can:
+
+``` sndioctl(1) output
+$ sndioctl
+output.level=0.331
+server.device=0
+app/aucat0.level=1.000
+app/firefox0.level=1.000
+app/mpv0.level=1.000
+app/mpv1.level=1.000
+app/mpv2.level=1.000
+```
+
+and to adjust the volume of firefox you’ll do something like
+
+``` adjusting the volume of firefox with sndioctl
+$ sndioctl app/firefox0.level=0.7
+output.level=0.701
+```
+
+you can also do things like increment or decrement by a certain amount, or toggle the mute.
+
+Obviously, typing the whole app/firefox0.level isn’t the most pleasing thing in the world, so you probably have some sort autocompletion in your shell.  Also, if your keyboard has the keys to adjust the volume, is highly possible that they’re working by default (even in the TTY, same story for the luminosity).
+
+Without further ado, let’s dig into the implementation of sndio.el.  Like for my text/gemini parser in Clojure, I’m going to try to transform this post into a literate programming exercise.  That is, if you tangle (put together) all the elisp blocks of code, you should end up with the same file I’m using (modulo some comments).
+
+Even if lexical binding is the default on Emacs 27, enable it.  And, while we’re there, also write a top comment as is usually done in elisp-land.
+
+```elisp
+;;; sndio.el --- Interact with sndio(8)  -*- lexical-binding: t; -*-
+
+(eval-when-compile (require 'subr-x))
+```
+
+subr-x gives us access to some macros, like when-let, so it’s nice to have.  Then we define some variables that we’ll use later.
+
+```elisp
+(defvar sndio-sndioctl-cmd "sndioctl"
+  "Path to the sndioctl executable.")
+
+(defvar sndio-step 0.02
+  "Step for `sndio-increase' and `sndio-decrease'.")
+```
+
+Buffers are one of the fundamental blocks of Emacs.  Buffers are places where you can store data.  When you open (visit in Emacs parlance) a file you get a buffer with the content of the file.  Likewise, when you write something interactive, you need a place where to show things, and you do this in a buffer.  Buffers are associated with a major mode, and can have an unlimited number of minor modes.  You should probably check the manual to learn the differences between these, but the gist of it is that a major mode is a chunk of code that govern how you interact with that particular buffer.  For instance, when you visit a C file the major mode cc-mode provides indentation and syntax highlighting, amongst other things.  Minor modes are instead more like utility stuff, they usually implement functionalities that are useful in more situations.
+
+Every mode has a keymap.  A keymap like a dictionary where you associate keybindings to functions.  Since we’re gonna define a sndio-mode, we need a keymap for it
+
+```elisp
+(defvar sndio-mode-map
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "n") #'forward-line)
+    (define-key m (kbd "p") #'previous-line)
+    (define-key m (kbd "i") #'sndio-increase)
+    (define-key m (kbd "d") #'sndio-decrease)
+    (define-key m (kbd "m") #'sndio-mute)
+    (define-key m (kbd "t") #'sndio-toggle)
+    (define-key m (kbd "g") #'sndio-update)
+    m)
+  "Keymap for sndio.")
+```
+
+There are two ways to create a keymap, make-sparse-keymap and make-keymap.  A sparse keymap should be more optimised towards a small amount of keys, but the distinction is probably an historical accident.  The majority of the time you want to create a sparse keymap.  We’ll see the definition of the functions, except for forward-line and previous-line that are built in, in a moment.
+
+---
+
+Aside: elisp, like common lisp, is a LISP-2, while Clojure and Scheme are LISP-1.  LISP-1 has the same semantics as most other programming languages like C, Haskell, Java etc, so if you come from one of these languages you may find LISP-1 more simple to grasp and LISP-2 languages a bit funny.  The difference is that in LISP-2 a symbol has different semantics based on the place it is: if it’s the first element in a list, is considered a function, otherwise is considered a variable.  This means that it’s legal to write something like
+
+```common-lisp
+(let ((list (list 1 2 3)))
+  (list list list))  ; ok, probably a bad example
+;; => ((1 2 3) (1 2 3))
+```
+
+where list is both a (built-in) function and a variable.  Elisp is a LISP-2, so to pass a function as an argument to another you need to sharp-quote it  #'like-this.  This tells the language that you really mean the function like-this and not the value of a variable named like-this.
+
+---
+
+We have a keymap, so let’s create a mode.  We define a sndio-mode that derives from special-mode.  special-mode is a built-in mode meant for interactive buffers.  Like inheriting in OOP, deriving from a mode lets us get various things for free.  For instance, special-mode makes the buffer read only, so when the user press a key it doesn’t get inserted into the buffer.  (For the record, most programming language inherits from prog-mode, so it’s easier for the user to enable stuff for all programming-related buffers.)
+
+```elisp
+(define-derived-mode sndio-mode special-mode "sndio"
+  "Major mode for sndio interaction."
+  (buffer-disable-undo)
+  (sndio-update))
+```
+
+We also call sndio-update as a step of activating the major mode.  sndio-update will capture the output of sndioctl.
+
+```elisp
+(defun sndio-update ()
+  "Update the current sndio buffer."
+  (interactive)
+  (with-current-buffer "*sndio*"
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (process-file sndio-sndioctl-cmd nil (current-buffer) nil))))
+```
+
+It does so by making sure we are in the “*sndio*” buffer, then disables the read-only status of the buffer so it can erase it and capture the output of sndio-sndioctl-cmd (i.e. “sndioctl”).
+
+Aside: elisp has lexical binding, but variables defined with defvar are special and are subject to dynamic binding.  inhibit-read-only is one of such vars.
+
+Another interesting thing is the interactive signature.  That signature tells Emacs that function can be called interactively (either by binding it to a key or via M-x).  Not all functions can be called interactively (and for most function it doesn’t make sense, what should do #’+ when called interactively?), so we need to explicitly mark those functions.
+
+Then we define three helper functions (note that these aren’t interactive).  sndio--run is a wrapper around #’process-file: it calls sndioctl with the given arguments and return its output as string.
+
+```elisp
+(defun sndio--run (&rest args)
+  "Run `sndio-sndioctl-cmd' with ARGS yielding its output."
+  (with-temp-buffer
+    (when (zerop (apply #'process-file sndio-sndioctl-cmd nil t nil args))
+      (buffer-string))))
+```
+
+Aside: note how this function has two dash - in its name.  elisp doesn’t have namespaces, and thus it doesn’t have the concept of private and public functions.  Every function is public.  So, where the language doesn’t arrive, conventions do: two dash means a “private” function.
+
+sndio--current-io returns the name of the channel where the cursor (point in Emacs parlance) is.
+
+```
+(defun sndio--current-io ()
+  "Yield the input/poutput at point as string."
+  (when-let (end (save-excursion
+                   (beginning-of-line)
+                   (ignore-errors (search-forward "="))))
+    (buffer-substring-no-properties (line-beginning-position)
+                                    (1- end))))
+```
+
+sndio--update-value updates the value for the channel where the point is.
+
+```elisp
+(defun sndio--update-value (x)
+  "Update the value for the input/output at point setting it to X."
+  (save-excursion
+    (beginning-of-line)
+    (search-forward "=")
+    (let ((inhibit-read-only t))
+      (delete-region (point) (line-end-position))
+      (insert (string-trim-right x)))))
+```
+
+save-excursion restore the position of the point (and other things) after its body completed.
+
+We’re near the end.  Now we’ll define the interactive function to increase/decrease/mute and toggle the input/output channel at point using what we wrote earlier.  We’ll use the concat function to concatenate into a string and build the arguments to sndioctl.
+
+```elisp
+(defun sndio-increase ()
+  "Increase the volume for the input/output at point."
+  (interactive)
+  (when-let (x (sndio--current-io))
+    (when-let (val (sndio--run "-n" (concat x "=+" (number-to-string sndio-step))))
+      (sndio--update-value val))))
+
+(defun sndio-decrease ()
+  "Decrease the volume for the input/output at point."
+  (interactive)
+  (when-let (x (sndio--current-io))
+    (when-let (val (sndio--run "-n" (concat x "=-" (number-to-string sndio-step))))
+      (sndio--update-value val))))
+
+(defun sndio-mute ()
+  "Mute the input/output at point."
+  (interactive)
+  (when-let (x (sndio--current-io))
+    (when-let (val (sndio--run "-n" (concat x "=0")))
+      (sndio--update-value val))))
+
+(defun sndio-toggle ()
+  "Toggle input/output at point."
+  (interactive)
+  (when-let (x (sndio--current-io))
+    (when-let (val (sndio--run "-n" (concat x "=!")))
+      (sndio--update-value val))))
+```
+
+Finally, we define an entry point and conclude our small library:
+
+```elisp
+(defun sndio ()
+  "Launch sndio."
+  (interactive)
+  (switch-to-buffer "*sndio*")
+  (sndio-mode))
+
+(provide 'sndio)
+;;; sndio.el ends here
+```
+
+sndio is an interactive function that will switch to a buffer named “*sndio*” and activate our major mode.  The result is this:
+
+=> /img/sndio-el.gif    sndio gif (233K)
+
+Pretty cool, hu?
+
+You can find the full code here:
+=> https://git.omarpolo.com/sndio.el/           git repository
+=> https://github.com/omar-polo/sndio.el/       GitHub mirror

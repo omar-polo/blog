@@ -1,4 +1,12 @@
-[{:title    "IRIs are not hard!"
+[{:title    "The joy of elisp: an example"
+  :slug     "joy-of-elisp-sndio"
+  :date     "2020/12/28"
+  :tags     #{:literate-programming :lisp :emacs :OpenBSD}
+  :short    "let's make sndioctl output interactive with the power of a bunch of parens!"
+  :gemtext? true
+  :music    {:title "L'infinita Gioia di Henry Bahus"
+             :by    "Verdena"}}
+ {:title    "IRIs are not hard!"
   :slug     "iris-are-not-hard"
   :date     "2020/12/26"
   :tags     #{:c :gemini}
@@ -54,7 +62,7 @@
  {:title    "Parsing Gemtext with Clojure"
   :slug     "parsing-gemtext-with-clojure"
   :date     "2020/10/03"
-  :tags     #{:clojure :gemini}
+  :tags     #{:clojure :gemini :literate-programming}
   :short    "fun with transducers"
   :gemtext? true}
  {:title    "Hello gemini!"

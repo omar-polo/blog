@@ -54,7 +54,7 @@
                     ".")]
    [:paragraph "Tagged with:"]
    (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
-        tags)
+        (sort tags))
    (when xkcd
      [:link (str "https://xkcd.com/" xkcd) (format "Relevant XKCD – #%d" xkcd)])
    (if full?

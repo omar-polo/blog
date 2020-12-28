@@ -98,7 +98,7 @@
       ".")]
     [:ul.tags (map #(vector :li [:a {:href (str "/tag/" (name %) ".html")}
                                  (str "#" (name %))])
-                   tags)]
+                   (sort tags))]
     (when xkcd
       [:p [:a {:href (str "https://xkcd.com/" xkcd)
                :target "_blank"
