@@ -1,0 +1,113 @@
+I like text/gemini.  I like writing in this format.  At first, it was a bit limitating, like, I want *bold*, /italic/, _underline_, ~striked~, [inline links](…), ![inline images](…), !![inline videos](…) (?) etc.  But I as started writing (by the way, every post in the last 3 months was written in text/gemini) I found myself pretty accustomed to it.  I really like the idea of one link-per-line.
+
+I also started writing text/gemini outside this blog.  The INSTALL file for gmid is written in text/gemini.  The README for tango (a new hack, will write about that later) is also written in text/gemini.
+
+=> https://git.omarpolo.com/gmid/about/         gmid repository
+=> https://git.omarpolo.com/tango/about/        tango repository
+
+(they’re only gemini-related things, so using text/gemini for documentational/presentational purpose seems appropriate.)
+
+I also have a public (HTTP-only for the time being) git repository, powered by cgit.
+
+If you sum this two things, you’ll reach the logical conclusion that I need a filter for cgit to display text/gemini over HTTP.
+
+Cgit has this cool things called filters: you can write script (or any executable really) that accept input in a particular format and output HTML and cgit will use it to render pages.
+
+There are a few text/gemini to HTML converters, but I rolled my own.  NIH.  Well, not really.  I currently run cgit on a FreeBSD jail, and I don’t like the idea of installing too much things inside it.  I could have built a (say) go executable linked statically and copied into the jail, but I don’t really like the idea.
+
+Instead, I wrote an AWK script to convert text/gemini files to HTML.  I was kinda surprised that nobody had already written one in AWK (or Perl).  It isn’t too ugly, and was an occasion to review the language.
+
+AWK is, in my opinion, an almost perfect scripting language.  It is quick, easy to learn and to use (both as a filter in pipe and as a standalone script) and packed with nice and essential features.  But it lacks something.  I don’t know exactly what, but every time I use it (for more than a one-liner) I get the impression that something is missing.
+
+Anyway, here’s the script in all its glory.  This time I discovered the “next” statement, that unfortunately cannot be used inside a function (probably for a good reason).
+
+(it’s open to improvements, but at the moment I’m happy with it)
+
+```awk
+#!/usr/bin/awk -f
+
+BEGIN {
+	in_pre = 0;
+	in_list = 0;
+}
+
+!in_pre && /^###/	{ output("<h3>", substr($0, 4), "</h3>"); next }
+!in_pre && /^##/	{ output("<h2>", substr($0, 3), "</h2>"); next }
+!in_pre && /^#/		{ output("<h1>", substr($0, 2), "</h1>"); next }
+!in_pre && /^>/		{ output("<blockquote>", substr($0, 2), "</blockquote>"); next }
+!in_pre && /^\*/	{ output("<li>", substr($0, 2), "</li>"); next }
+
+!in_pre && /^=>/ {
+	$0 = substr($0, 3);
+	link = $1;
+	$1 = "";
+	output_link(link, $0);
+	next;
+}
+
+!in_pre && /^```/ {
+	in_pre = 1;
+	if (in_list) {
+		in_list = 0;
+		print("</ul>");
+	}
+	print "<pre>";
+	next
+}
+
+in_pre && /^```/	{ in_pre = 0; print "</pre>"; next }
+!in_pre			{ output("<p>", $0, "</p>"); next }
+in_pre			{ print san($0); next }
+
+END {
+	if (in_list)
+		print "</ul>"
+	if (in_pre)
+		print "</pre>"
+}
+
+function trim(s) {
+	sub("^[ \t]*", "", s);
+	return s;
+}
+
+function san(s) {
+	gsub("&", "\\&amp;", s)
+	gsub("<", "\\&lt;", s)
+	gsub(">", "\\&gt;", s)
+	return s;
+}
+
+function output(ot, content, et) {
+	content = trim(content);
+
+	if (!in_list && ot == "<li>") {
+		in_list = 1;
+		print "<ul>";
+	}
+
+	if (in_list && ot != "<li>") {
+		in_list = 0;
+		print "</ul>";
+	}
+
+	if (ot == "<p>" && content == "")
+		return;
+
+	printf("%s%s%s\n", ot, san(content), et);
+}
+
+function output_link(link, content) {
+	if (in_list) {
+		in_list = 0;
+		print "</ul>";
+	}
+
+	if (content == "")
+		content = link;
+
+	printf("<p><a href=\"%s\">%s</a></p>\n", link, trim(san(content)));
+}
+```
+
+Cheers!

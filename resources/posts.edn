@@ -1,4 +1,12 @@
-[{:title    "The joy of elisp: an example"
+[{:title    "text/gemini to HTML with AWK"
+  :slug     "text-gemini-to-html-with-awk"
+  :date     "2020/12/29"
+  :tags     #{:awk :gemini :git}
+  :short    "Fun with AWK and text/gemini"
+  :gemtext? true
+  :music    {:title "Venice Queen"
+             :by    "Red Hot Chili Peppers"}}
+ {:title    "The joy of elisp: an example"
   :slug     "joy-of-elisp-sndio"
   :date     "2020/12/28"
   :tags     #{:literate-programming :lisp :emacs :OpenBSD}
