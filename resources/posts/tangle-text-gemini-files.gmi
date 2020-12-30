@@ -1,0 +1,33 @@
+I’m enjoying writing literate programming-esque posts.  I have written two of them in the last months, and I’ll definitely write more in the future.
+
+=> /post/joy-of-elisp-sndio.gmi           The joy of elisp: an example
+=> /post/parsing-gemtext-with-clojure.gmi Parsing Gemtext with Clojure
+
+I’m new to the idea of literate programming, so I hope you’ll excuse my lack of knowledge on the matter.
+
+Those two posts were written by taking the sources of an already written program and splitting them into pieces, adding commentary text here and there.
+
+I liked, but I have a greater plan that I’ll try to follow.  This Great Plan requires various steps, many of which I don’t really know how to do, but I did an initial one that I think I’d like to share: tangling literate text/gemini into a source file.
+
+If I’m not mistaking, in the scope of literate programming the term “tangle” means “putting the chunk of codes together into a source file.”
+
+I wrote a quick program to do this, and it’s called tango.  (no, it’s not written in go)
+
+=> https://git.omarpolo.com/tango/about  Tango git repository
+=> https://github.com/omar-polo/tango    GitHub mirror
+
+It’s a C program that parses text/gemini from standard input (or from given files) and tangle the code blocks into a single stream (standard output or a given file).  It’s able to conditionally export block of codes using a given regexp that will match on the alt text of the preformatted block.
+
+Even if I’m posting it after, it predates my AWK script to convert text/gemini to HTML.  In retrospect, I could have probably saved some lines of code by writing it in AWK.
+
+=> /post/text-gemini-to-html-with-awk.gmi text/gemini to HTML with AWK
+
+At the moment tango is quite simplistic: it outputs the block in the order it finds them.  Other, and more sophisticate, literate programming tools allow for more control over this.  For instance, in org-mode you can name a block of code and then “include” it into another block using the syntax:
+
+```how to include a code block from within another one in org-mode
+<<block name>>
+```
+
+Honestly, I don’t like this.  I mean, I would like to have something like this in tango, but I heavily dislike the syntax for inclusion.  Ideally, the information of “put that thing here” should be outside the code block.  Or maybe it’s a silly idea.
+
+Anyway, this is all I have this time, hope you enjoy the idea.

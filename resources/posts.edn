@@ -1,4 +1,10 @@
-[{:title    "text/gemini to HTML with AWK"
+[{:title    "Tangle text/gemini files"
+  :slug     "tangle-text-gemini-files"
+  :date     "2020/12/30"
+  :tags     #{:gemini :literate-programming}
+  :short    "Literate programming using text/gemini?"
+  :gemtext? true}
+ {:title    "text/gemini to HTML with AWK"
   :slug     "text-gemini-to-html-with-awk"
   :date     "2020/12/29"
   :tags     #{:awk :gemini :git}
