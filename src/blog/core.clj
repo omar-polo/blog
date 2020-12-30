@@ -20,9 +20,15 @@
     (io/copy in out)))
 
 (defn post [{:keys [slug gemtext?] :as p}]
-  (let [ext (if gemtext? ".gmi" ".md")]
+  (let [ext  (if gemtext? ".gmi" ".md")
+        path (str "posts/" slug ext)
+        file (io/resource path)]
+    (when-not file
+      (throw (ex-info "51: post not found" {:slug     slug
+                                            :gemtext? gemtext?
+                                            :path     path})))
     (-> p
-        (assoc  :body (-> (str "posts/" slug ext) io/resource slurp))
+        (assoc  :body (slurp file))
         (update :date time/parse))))
 
 (def pages (atom nil))
