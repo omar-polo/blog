@@ -15,7 +15,7 @@
  {:title    "The joy of elisp: an example"
   :slug     "joy-of-elisp-sndio"
   :date     "2020/12/28"
-  :tags     #{:literate-programming :lisp :emacs :OpenBSD}
+  :tags     #{:literate-programming :lisp :elisp :OpenBSD}
   :short    "let's make sndioctl interactive with the power of a bunch of parens!"
   :gemtext? true
   :music    {:title "L'infinita Gioia di Henry Bahus"
