@@ -4,7 +4,7 @@
   :date     "2021/01/11"
   :tags     #{:c :parsing}
   :gemtext? true
-  :music    {:title "Metropolis Pt. 2 scenesc From a Memory"
+  :music    {:title "Metropolis Pt. 2 scenes From a Memory"
              :by    "Dream Theater"}}
  {:title    "Tangle text/gemini files"
   :slug     "tangle-text-gemini-files"
