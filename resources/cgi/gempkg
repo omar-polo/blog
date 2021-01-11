@@ -61,7 +61,7 @@ if not path or path == '/':
     print("20 text/gemini;charset=utf-8\r")
     print("Welcome to GemPKG, the gemini interface to the OpenBSD port collection.")
     print("")
-    print(f"=> {script_path}/search Search for a package")
+    print(f"=> /{script_path}/search Search for a package")
     print("")
     print("What you search will be matched against the package name (pkgstem), the comment, the DESCR and the maintainer.")
     exit(0)
@@ -78,14 +78,14 @@ try:
         cursor = conn.execute(query_search, (query,))
 
         print("20 text/gemini;charset=utf-8\r")
-        print(f"=> {script_path} GemPKG home")
-        print(f"=> {script_path}/search Search the OpenBSD port collection")
+        print(f"=> /{script_path} GemPKG home")
+        print(f"=> /{script_path}/search Search the OpenBSD port collection")
         print("")
         print(f"# Search results for \"{query}\"")
         print("")
         for row in cursor:
             stem, comment, fullpkgpath = row
-            print(f"=> {script_path}/{fullpkgpath} {stem}")
+            print(f"=> /{script_path}/{fullpkgpath} {stem}")
             print(f"> {comment}")
             print("")
             print("")
@@ -100,8 +100,8 @@ try:
         fullpkgpath, stem, comment, descr, maintainer, readme, www = row
 
         print("20 text/gemini;charset=utf-8\r")
-        print(f"=> {script_path} GemPKG home")
-        print(f"=> {script_path}/search Search the OpenBSD port collection")
+        print(f"=> /{script_path} GemPKG home")
+        print(f"=> /{script_path}/search Search the OpenBSD port collection")
         print("")
         print(f"# {path}")
         print(f"``` The command to execute to install the package {stem}")
