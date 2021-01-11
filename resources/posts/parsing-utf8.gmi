@@ -1,0 +1,183 @@
+In one of the recent posts, the one were I was discussing the IRI implementation in gmid, I said that I wasn’t happy with the UTF-8 parser.
+
+=> /post/iris-are-not-hard.gmi  IRIs are not hard!
+
+Since then, I improved the valid_multibyte_utf8 function at least two times, and I’m happy with the current result, but I thought to document here the various “generations” of that functions.
+
+The purpose of valid_multibyte_utf8 is to tell if a string starts with a valid UTF-8 encoded UNICODE character, and advance the pointer past that glyph.  We’re interested only in U+80 and up, because of the characters in the ASCII range we’ve already taken care of.
+
+UTF-8 is a multibyte character encoding for UNICODE text.  Multibyte means that a single UNICODE codepoint can occupy more than one byte; in fact, UTF-8 is also variable-length: a codepoint can span between one and four bytes.
+
+UTF-8 is also a nice encoding, easy to parse but, as with everything that is related to UNICODE, with subtle and annoying details.
+
+The UNICODE codepoints are encoded as follows:
+
+* U+0000 - U+007F: one byte, compatible with ASCII
+* U+0080 - U+07FF: two bytes
+* U+0800 - U+D7FF and U+E0000 - U+FFFF: three bytes
+* U+10000 – U+10FFFF: four bytes
+
+Byte-wise, every UTF-8 character starts with either a 0 or with the bit patter 11XXXXXX.  Byte starting with 11 are called UTF-8 “start bytes”, and are followed by up to three byte that starts with 10XXXXXX, called “continuation bytes”.
+
+```
+one byte:       0.......
+two bytes:      110..... 10......
+three bytes:    1110.... 10...... 10......
+four bytes:     11110... 10...... 10...... 10......
+```
+
+A first, quick implementation in C of a UTF-8 parser could look something like this:
+
+```
+#define CONT_BYTE(b) ((b & 0xC0) == 0x80)
+
+int
+valid_multibyte_utf8(struct parser *p)
+{
+	/* p->uri is our string */
+	uint8_t s = *p->uri;
+
+	if ((s & 0x80) == 0)
+		/* return 1 here to accept ASCII */
+		return 0;
+
+	/* 2 bytes seq */
+	if ((s & 0xE0) == 0xC0)
+		return CONT_BYTE(*(++p->uri));
+
+	/* 3 bytes seq */
+	if ((s & 0xF0) == 0xE0)
+		return CONT_BYTE(*(++p->uri))
+			&& CONT_BYTE(*(++p->uri));
+
+	/* 4 bytes seq */
+	if ((s & 0xF8) == 0xF0)
+		return CONT_BYTE(*(++p->uri))
+			&& CONT_BYTE(*(++p->uri))
+			&& CONT_BYTE(*(++p->uri));
+
+	return 0;
+}
+```
+
+This reads nice, and seems pretty straightforward.  It checks the first byte, and then the appropriate number of continuation bytes.  It won’t overflow if a codepoint is truncated due to the short-circuit nature of the logical and in C.
+
+But it isn’t UNICODE compliant.
+
+This parser will happily accept byte sequence that looks like UTF-8 but aren’t valid.  In particular, everything in the range U+D800 - U+DFFF and U+110000 - U+1FFFFF DO NOT contain valid UNICODE codepoints.  But this parser will accept them.
+
+An easy “upgrade” could be something like this, that inverts the logic of the ifs and checks that the codepoint we parse is in the correct range:
+
+```
+int
+valid_multibyte_utf8(struct parser *p)
+{
+	uint32_t c;
+	uint8_t s;
+
+	c = 0;
+	s = *p->uri;
+
+	if ((s & 0xE0) == 0xC0) {
+		if (!CONT_BYTE(p->uri[1]))
+			return 0;
+		c = ((s & 0x1F) << 6) | (p->uri[1] & 0x3F);
+		p->uri += 1;
+	} else if ((s & 0xF0) == 0xE0) {
+		if (!CONT_BYTE(p->uri[1]) ||
+		    !CONT_BYTE(p->uri[2]))
+			return 0;
+		c = (s & 0x0F) << 12
+			| ((p->uri[1] & 0x3F) << 6)
+			| ((p->uri[2] & 0x3F));
+		p->uri += 2;
+	} else if ((s & 0xF8) == 0xF0) {
+		if (!CONT_BYTE(p->uri[1]) ||
+		    !CONT_BYTE(p->uri[2]) ||
+		    !CONT_BYTE(p->uri[3]))
+			return 0;
+		c = (s & 0x07) << 18
+			| ((p->uri[1] & 0x3F) << 12)
+			| ((p->uri[2] & 0x3F) << 6)
+			| ((p->uri[3] & 0x3F));
+		p->uri += 3;
+	} else
+		return 0;
+
+	return (((0x080 <= c) && (c <= 0x7FF))
+	    || (((0x800 <= c) && (c <= 0xFFFF)))
+	    || (((0x10000 <= c) && (c <= 0x10FFFF))));
+}
+```
+
+Oh my, this is starting to become ugly, isn’t it?  Well, at least we can be sure that this handle everything and move on.
+
+Except that even this version is not complete.  Sure, we’re sure that we’ve read a valid UNICODE codepoint, but here’s the twist: overlong sequences.
+
+In UTF-8 sometimes you can encode the same character in multiple ways.  The classic example, the one that various RFCs mentions, is the case of 0xC080.
+
+``` hexadecimal, binary and decimal visual representations of 0xC080
+ C    0    8    0       hexadecimal
+1100 0000 1000 0000     binary
+ 12   0    8    0       decimal
+```
+
+This looks like a legit UTF-8 two-byte characters, but it gets encoded to NUL, U+0000.
+
+In RFC3629 — “UTF-8, a transformation format of ISO 10646” — explicitly warns implementors about this issue:
+
+> Implementations of the decoding algorithm above MUST protect against decoding invalid sequences.  For instance, a naive implementation may decode the overlong UTF-8 sequence C0 80 into the character U+0000, or the surrogate pair ED A1 8C ED BE B4 into U+233B4.  Decoding invalid sequences may have security consequences or cause other problems.  See Security Considerations (Section 10) below.
+> — RFC3629, 3. “UTF-8 definition”
+
+Well, we could reverse the logic and have the various checks in every if-else branch but, honestly, this is becoming even messier.  Magic numbers everywhere, long checks, etc; if only there were a simpler decoder…
+
+Introducing the “Flexible and Economical UTF-8 decoder”, by Björn Höhrmann.
+
+=> https://bjoern.hoehrmann.de/utf-8/decoder/dfa/  «Flexible and Economical UTF-8 decoder».
+
+The decoder goes as follows:
+```
+// Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+// See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
+
+#define UTF8_ACCEPT 0
+#define UTF8_REJECT 1
+
+static const uint8_t utf8d[] = {
+  /* lots of data */
+};
+
+uint32_t inline
+decode(uint32_t* state, uint32_t* codep, uint32_t byte) {
+  uint32_t type = utf8d[byte];
+
+  *codep = (*state != UTF8_ACCEPT) ?
+    (byte & 0x3fu) | (*codep << 6) :
+    (0xff >> type) & (byte);
+
+  *state = utf8d[256 + *state*16 + type];
+  return *state;
+}
+```
+
+The beauty of this decoder lies in the technique used: a state machine.  I love state machines: they’re easy to design and reason about, fun and compact to implement and require only a small fixed amount of resources.
+
+valid_multibyte_utf8 can now be built on top of decode easily as follows:
+```
+int
+valid_multibyte_utf8(struct parser *p)
+{
+	uint32_t cp = 0, state = 0;
+
+        for (; *p->uri; p->uri++)
+		if (!utf8_decode(&state, &cp, *p->uri))
+			break;
+
+	/* reject also the ASCII range */
+        return !state && cp > 0x7F
+}
+```
+
+That’s all about it.  I found interesting to study these various techniques to decode UTF-8.  Also, if you don’t know the story behind how Ken Thompson designed it on a placemat, go read it, it’s fascinating!
+
+=> https://www.cl.cam.ac.uk/~mgk25/ucs/utf-8-history.txt UTF-8 history

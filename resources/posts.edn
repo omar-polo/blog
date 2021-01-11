@@ -1,4 +1,12 @@
-[{:title    "Tangle text/gemini files"
+[{:title    "Parsing UTF-8"
+  :short    "The ugly, the uglier and the finite approach"
+  :slug     "parsing-utf8"
+  :date     "2021/01/11"
+  :tags     #{:c :parsing}
+  :gemtext? true
+  :music    {:title "Metropolis Pt. 2 scenesc From a Memory"
+             :by    "Dream Theater"}}
+ {:title    "Tangle text/gemini files"
   :slug     "tangle-text-gemini-files"
   :date     "2020/12/30"
   :tags     #{:gemini :literate-programming}
