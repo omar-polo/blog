@@ -2,7 +2,7 @@ In one of the recent posts, the one were I was discussing the IRI implementation
 
 => /post/iris-are-not-hard.gmi  IRIs are not hard!
 
-Since then, I improved the valid_multibyte_utf8 function at least two times, and I’m happy with the current result, but I thought to document here the various “generations” of that functions.
+Since then, I improved the valid_multibyte_utf8 function at least two times, and I’m happy with the current result, but I thought to document here the various “generations” of that function.
 
 The purpose of valid_multibyte_utf8 is to tell if a string starts with a valid UTF-8 encoded UNICODE character, and advance the pointer past that glyph.  We’re interested only in U+80 and up, because of the characters in the ASCII range we’ve already taken care of.
 
@@ -112,7 +112,7 @@ valid_multibyte_utf8(struct parser *p)
 
 Oh my, this is starting to become ugly, isn’t it?  Well, at least we can be sure that this handle everything and move on.
 
-Except that even this version is not complete.  Sure, we’re sure that we’ve read a valid UNICODE codepoint, but here’s the twist: overlong sequences.
+Except that even this version is not complete.  Sure, we know that we’ve read a valid UNICODE codepoint, but here’s the twist: overlong sequences.
 
 In UTF-8 sometimes you can encode the same character in multiple ways.  The classic example, the one that various RFCs mentions, is the case of 0xC080.
 
