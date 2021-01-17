@@ -1,8 +1,8 @@
 # gmid
 
-gmid is a small, almost no-dependencies, gemini server for static content.  I wrote it because I needed one and I disliked the ones that I found (or I wasn't able to compile them)
+gmid is a small, almost no-dependencies, gemini server for static content.
 
-It's a very short program (less than 1K lines of C code at the moment), that uses libtls (a GREAT tls library from the OpenBSD folks) but is able to serve static content and execute CGI scripts.
+It's a short program that uses libtls (a GREAT tls library from the OpenBSD folks) to serve static content and execute CGI scripts.
 
 => https://git.omarpolo.com/gmid        source code
 => https://github.com/omar-polo/gmid	GitHub mirror
@@ -20,7 +20,7 @@ $ git clone https://github.com/omar-polo/gmid
 
 This is mostly a TODO/wish list of things, just to get an idea of what I'm gonna do (and to remind to myself too).
 
-* virtual hosts: mapping virtual hosts to different directories would be really handy.
-* dual stack: serving over both ipv4 and ipv6
+* improve mime types handling
+* add location rules to the configuration file to allow changing some parameters per-path
 * automatic certificate generation
 * directory listings: it's currently not supported, and I'm not even sure it could be useful.
