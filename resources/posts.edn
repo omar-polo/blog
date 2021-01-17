@@ -1,4 +1,12 @@
-[{:title    "Parsing UTF-8"
+[{:title    "Parsing PO files in Clojure"
+  :short    "Building parsers on top of transducers, what can go wrong?"
+  :slug     "parsing-po"
+  :date     "2021/01/13"
+  :tags     #{:clojure :parsing :literate-programming}
+  :gemtext? true
+  :music    {:title "Metropolis Pt. 2 scenes From a Memory"
+             :by    "Dream Theater"}}
+ {:title    "Parsing UTF-8"
   :short    "The ugly, the uglier and the finite approach"
   :slug     "parsing-utf8"
   :date     "2021/01/11"
