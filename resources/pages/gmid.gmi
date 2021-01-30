@@ -20,7 +20,6 @@ $ git clone https://github.com/omar-polo/gmid
 
 This is mostly a TODO/wish list of things, just to get an idea of what I'm gonna do (and to remind to myself too).
 
-* improve mime types handling
-* add location rules to the configuration file to allow changing some parameters per-path
-* automatic certificate generation
-* directory listings: it's currently not supported, and I'm not even sure it could be useful.
+* listen only on specific IPs
+* automatic redirects and errors page
+* customize error messages
