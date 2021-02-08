@@ -1,4 +1,36 @@
-[{:title    "Parsing PO files in Clojure"
+[{:title    "Fun with seccomp & signals"
+  :short    "debugging fiters using signals when signals themselves are the problem"
+  :slug     "fun-with-seccomp"
+  :date     "2021/02/08"
+  :tags     #{:linux}
+  :gemtext? true
+  :music    {:title "Lucy in the Sky with Diamonds"
+             :by    "The Beatles"}}
+ {:title    "Reloading a daemon"
+  :short    "reload != stop+start plus misc signals race-conditions"
+  :slug     "daemon-reload"
+  :date     "2021/02/04"
+  :tags     #{:c :unix}
+  :gemtext? true
+  :music    {:title "Strawberry Fields Forever"
+             :by    "The Beatles"}}
+ {:title    "gmid “Interstellar Overdrive” v1.5 update"
+  :short    "20 days of work = whole bunch of new features"
+  :slug     "gmid-1.5"
+  :date     "2021/01/30"
+  :tags     #{:gemini :gmid}
+  :gemtext? true
+  :music    {:title "Interstellar Overdrive"
+             :by    "Pink Floyd"}}
+ {:title    "Comparing sandboxing techniques"
+  :short    "Different ways beastie, puffy and tux play"
+  :slug     "gmid-sandbox"
+  :date     "2021/01/22"
+  :tags     #{:linux :OpenBSD :FreeBSD :security}
+  :gemtext? true
+  :music    {:title "Octavarium"
+             :by    "Dream Theater"}}
+ {:title    "Parsing PO files in Clojure"
   :short    "Building parsers on top of transducers, what can go wrong?"
   :slug     "parsing-po"
   :date     "2021/01/13"
