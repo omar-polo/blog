@@ -142,6 +142,18 @@
   (spit (str "resources/out/http/rss.xml")
         (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
 
+(defn generate-robots-txt []
+  (spit "resources/out/gemini/robots.txt" "# block some bots from accessing the gempkg
+User-agent: archiver
+Disallow: /cgi/gempkg/
+
+User-agent: indexer
+Disallow: /cgi/gempkg/
+
+User-agent: researcher
+Disallow: /cgi/gempkg/
+"))
+
 (defn copy-dir
   "Copy the content of resources/`dir` to resources/out/`proto`/`dir`,
   assuming these two directories exists."
@@ -177,6 +189,7 @@
   (copy-assets)
   (copy-cgi)
   (render-rss)
+  (generate-robots-txt)
   (doseq [[proto ffn ext homefn postfn tagsfn tagfn pagefn]
           [[:http identity ".html" http/home-page http/post-page http/tags-page http/tag-page http/custom-page]
            [:gemini gemini-post ".gmi" gemini/home-page gemini/post-page gemini/tags-page gemini/tag-page gemini/custom-page]]]
@@ -217,7 +230,7 @@
   "Copy the files to the server"
   []
   (sh "rsync" "-r" "--delete" "resources/out/http/"   "op:sites/www.omarpolo.com/")
-  (sh "rsync" "-r" "--delete" "resources/out/gemini/" "op:gemini"))
+  (sh "rsync" "-r" "--delete" "resources/out/gemini/" "op:gemini/gemini.omarpolo.com"))
 
 (defn stop-jetty []
   (.stop @j)
