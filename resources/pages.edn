@@ -4,6 +4,8 @@
   :slug  "star-platinum"}
  {:title "gmid - dead simple zero configuration gemini server"
   :slug  "gmid"}
+ {:title "vc-got: Emacs VC backend for GoT"
+  :slug  "vc-got"}
  {:title "crest - see your rest endpoints"
   :slug  "crest"}
  {:title "web interface to the OpenBSD port collection"

@@ -1,4 +1,12 @@
-[{:title    "Fun with seccomp & signals"
+[{:title    "Being lazy, the Emacs macro edition"
+  :short    "repetitive tasks no more"
+  :slug     "emacs-macros"
+  :date     "2021/02/10"
+  :tags     #{:emacs}
+  :gemtext? true
+  :music    {:title "Wait"
+             :by    "The Beatles"}}
+ {:title    "Fun with seccomp & signals"
   :short    "debugging fiters using signals when signals themselves are the problem"
   :slug     "fun-with-seccomp"
   :date     "2021/02/08"
