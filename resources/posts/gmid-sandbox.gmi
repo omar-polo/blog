@@ -1,0 +1,214 @@
+I had the opportunity to implement a sandbox and I'd like to write about the differences between the various sandboxing techniques available on three different operating systems: FreeBSD, Linux and OpenBSD.
+
+The scope of this entry is sandboxing gmid.  gmid is a single-threaded server for the Gemini protocol; it serves static files and optionally executes CGI scripts.
+
+=> /pages/gmid.gmi  gmid
+
+Before, the daemon was a single process listening on the port 1965 and eventually forking to execute CGI scripts, all of this managed by a poll(2)-based event loop.
+
+Now, the daemon is splitted into two processes: the listener, as the name suggest, listen on the port 1965 and is sandboxed, while the "executor" process stays out of the sandbox to execute the CGI scripts on-demand on behalf of the listener process.  This separation allowed to execute arbitrarly CGI scripts while still keeping the benefits of a sandboxed network process.
+
+I want to focus on the sandboxing techniques used to limit the listener process on the various operating systems.
+
+
+## Capsicum
+
+It's probably the easiest of the three to understand, but also the less flexible.  Capsicum allows a process to enter a sandbox where only certain operation are allowed: for instance, after cap_enter, open(2) is disabled, and one can only open new files using openat(2).  Openat itself is restricted in a way that you cannot open files outside the given directory (i.e. you cannot openat(“..”) and escape) — like some sort of chroot(2).
+
+The “disabled” syscalls won't kill the program, as happens with pledge or seccomp, but instead will return an error.  This can be both an advantage and a disadvantage, as it may lead the program to execute a code path that wasn't throughtfully tested, and possibly expose bugs because of it.
+
+Using capsicum isn't hard, but requires some preparation: the general rule you have to follow is pre-emptively open every resource you might need before entering the capsicum.
+
+Sandboxing gmid with capsicum required almost no changes to the code: except for the execution of CGI scripts, the daemon was only using openat and accept to obtain new file descriptors, so adding capsicum support was only a matter of calling cap_enter before the main loop.  Splitting the daemon into two processes was needed to allow the execution of CGI scripts, but turned out was also useful for pledge and seccomp too.
+
+
+## Plege and unveil
+
+Pledge and unveil are two syscall provided by the OpenBSD kernel to limits what a process can do and see.  They aren't really a sandbox techninque, but are so closely related to the argument that are usually considered one.
+
+With pledge(2), a process tells the kernel that from that moment onwards it will only do a certain categories of things.  For instance, the cat program on OpenBSD, before the main loop, has a pledge of “stdio rpath” that means: «from now on I will only do I/O on already opened files (“stdio”) and open new files as read-only (“rpath”)».  If a pledge gets violated, the kernel kills the program with SIGABRT and logs the pledge violation.
+
+One key feature of pledge is that is possible to drop pledges as you go.  For example, you can start with pledges “A B C” and after a while make another pledge call for “A C”, effectively dropping the capability B.  However, you cannot gain new capabilities.
+
+Unveil is a natural complement of pledge, as is used to limit the portion of the filesystem a process can access.
+
+One important aspect of both pledge and unveil is that they are reset upon exec: this is why I’m not going to strictly categorise them as sandboxing method.  Nevertheless, this aspect is, in my opinion, one big demonstration of pragmatism and the reason pledge and unveil are so widespread, even in software not developed with OpenBSD in mind.
+
+On UNIX we have various programs that are, or act like, shells.  We constantly fork(2) to exec(2) other programs that do stuff that we don’t want to do.  Also, most programs follow, or can be easily modified to do, an initialisation phase where they require access to various places on the filesystem and a lot of capabilities, and a “main-loop” phase where they only do a couple of things.  This means that it’s actually impossible to sandbox certain programs with capsicum(4) or with seccomp(2), while they’re dead-easy to pledge(2).
+
+Take a shell for instance.  You cannot capsicum(4) csh.  You can’t seccomp(2) bash.  But you can pledge(2) ksh:
+
+```
+; grep 'if (pledge' /usr/src/bin/ksh/ -RinH
+/usr/src/bin/ksh/main.c:150:            if (pledge("stdio rpath wpath cpath fattr flock getpw proc "
+/usr/src/bin/ksh/main.c:156:            if (pledge("stdio rpath wpath cpath fattr flock getpw proc "
+/usr/src/bin/ksh/misc.c:303:            if (pledge("stdio rpath wpath cpath fattr flock getpw proc "
+```
+
+OpenBSD is the only OS where BOTH the gmid processes, the listener and executor, are sandboxed.  The listener runs with the “stdio recvfd rpath inet” pledges and can only see the directories that it serves, and the executor runs with “stdio sendfd proc exec”.
+
+To conclude, pledge is more like a complement of the compiler, a sort of runtime checks that you really do what you promised to, more than a sandbox technique.
+
+
+## Seccomp
+
+Seccomp is huge.  It’s the most flexible and complex method of sandboxing I know of.  It was also the least pleasant one to work with, but was fun nevertheless.
+
+Seccomp allows you to write a script in a particular language, BPF, that gets executed (in the kernel) before EVERY syscall.  The script can decide to allow or disallow the system call, to kill the program or to return an error: it can control the behaviour of your program.  Oh, and they are inherited by the children of your program, so you can control them too.
+
+BPF programs are designed to be “secure” to run kernel-side, they aren’t Turing-complete, as the have conditional jumps but you can only jump forward, and a maximum allowed size, so you know for certain that a BPF programs, from now on called filters, will complete and take at-worst n time.  BPF programs are also validated to ensure that every possible code paths ends with a return.
+
+These filters can access the system call number and the parameters.  One important restriction is that the filter can read the parameters but not deference pointers: that means that you cannot disallow open(2) if the first argument is “/tmp”, but you can allow ioctl(2) only on the file descriptors 1, 5 and 27.
+
+So, how it’s like to write a filter?  Well, I hope you like C macros :)
+
+```C
+struct sock_filter filter[] = {
+        /* load the *current* architecture */
+        BPF_STMT(BPF_LD | BPF_W | BPF_ABS,
+            (offsetof(struct seccomp_data, arch))),
+        /* ensure it's the same that we've been compiled on */
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K,
+            SECCOMP_AUDIT_ARCH, 1, 0),
+        /* if not, kill the program */
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL),
+
+        /* load the syscall number */
+        BPF_STMT(BPF_LD | BPF_W | BPF_ABS,
+            (offsetof(struct seccomp_data, nr))),
+
+        /* allow write */
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_write, 0, 1),
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+
+        /* … */
+};
+
+struct sock_fprog prog = {
+        .len = (unsigned short) (sizeof(filter) / sizeof(filter[0])),
+        .filter = filter,
+};
+```
+
+and later load it with prctl:
+
+```C
+if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
+        fprintf(stderr, "%s: prctl(PR_SET_NO_NEW_PRIVS): %s\n",
+            __func__, strerror(errno));
+        exit(1);
+}
+
+if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog) == -1) {
+        fprintf(stderr, "%s: prctl(PR_SET_SECCOMP): %s\n",
+            __func__, strerror(errno));
+        exit(1);
+}
+```
+
+To make things a little bit readable I have defined a SC_ALLOW macro as:
+
+```C
+/* make the filter more readable */
+#define SC_ALLOW(nr)                                            \
+        BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_##nr, 0, 1),   \
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
+```
+
+so you can write things like
+
+```C
+        /* … */
+        SC_ALLOW(accept),
+        SC_ALLOW(read),
+        SC_ALLOW(openat),
+        SC_ALLOW(fstat),
+        SC_ALLOW(close),
+        SC_ALLOW(lseek),
+        SC_ALLOW(brk),
+        SC_ALLOW(mmap),
+        SC_ALLOW(munmap),
+        /* … */
+```
+
+As you can see, BPF looks like assembly, and in fact you talk about BPF bytecode.  I’m not going to teach the BPF here, but it’s fairly easy to learn if you have some previous experience with assembly or with the bytecode of some virtual machine.
+
+Debugging seccomp is also quite difficult.  When you violate a pledge the OpenBSD kernel will make the program abort and logs something like
+
+```
+Jan 22 21:38:38 venera /bsd: foo[43103]: pledge "stdio", syscall 5
+```
+
+so you know a) what pledge you’re missing, “stdio” in this case, and b) what syscall you tried to issue, 5 in this example.  You also get a core dump, so you can check the stacktrace to understand what’s going on.
+
+With BPF, your filter can do basically three things:
+* kill the program with an un-catchable SIGSYS
+* send a catchable SIGSYS
+* don’t execute the syscall and return an error (you can choose which)
+
+so if you want to debug things you have to implement your debugging strategy by yourself.  I’m doing something similar to what OpenSSH does: at compile-time switch to make the filter raise a catchable SIGSYS and install an handler for it.
+
+```C
+/* uncomment to enable debugging.  ONLY FOR DEVELOPMENT */
+/* #define SC_DEBUG */
+
+#ifdef SC_DEBUG
+# define SC_FAIL SECCOMP_RET_TRAP
+#else
+# define SC_FAIL SECCOMP_RET_KILL
+#endif
+
+static void
+sandbox_seccomp_violation(int signum, siginfo_t *info, void *ctx)
+{
+        fprintf(stderr, "%s: unexpected system call (arch:0x%x,syscall:%d @ %p)\n",
+            __func__, info->si_arch, info->si_syscall, info->si_call_addr);
+        _exit(1);
+}
+
+static void
+sandbox_seccomp_catch_sigsys(void)
+{
+        struct sigaction act;
+        sigset_t mask;
+
+        memset(&act, 0, sizeof(act));
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGSYS);
+
+        act.sa_sigaction = &sandbox_seccomp_violation;
+        act.sa_flags = SA_SIGINFO;
+        if (sigaction(SIGSYS, &act, NULL) == -1) {
+                fprintf(stderr, "%s: sigaction(SIGSYS): %s\n",
+                    __func__, strerror(errno));
+                exit(1);
+        }
+        if (sigprocmask(SIG_UNBLOCK, &mask, NULL) == -1) {
+                fprintf(stderr, "%s: sigprocmask(SIGSYS): %s\n",
+                    __func__, strerror(errno));
+                exit(1);
+        }
+}
+
+/* … */
+#ifdef SC_DEBUG
+        sandbox_seccomp_catch_sigsys();
+#endif
+```
+
+This way you can at least know what forbidden syscall you tried to run.
+
+
+## Wrapping up
+
+I’m not a security expert, so you should take my words with a huge grain of salt, but I think that if we want to build secure systems, we should try to make these important security mechanisms as easy as possible without defeating their purposes.
+
+If a security mechanism is easy enough to understand, to apply and to debug, we can expect to be picked up by a large number of people and everyone benefits from it.  This is what I like about the OpenBSD system: over the years the tried to come up with simpler solution to common problems, so now you have things like reallocarray, strlcat & strlcpy, strtonum, etc.  Small things that make errors difficult to code.
+
+You may criticise pledge(2) and unveil(2), but one important — and objective — point to note is how easy they are to add to a pre-existing program.  You have window managers, shells, servers, utilities that runs under pledge, but I don’t know of a single window manager that runs under seccomp(2).
+
+Talking in particular about linux, only the current seccomp implementation in gmid is half of the lines of code of the first version of the daemon itself.
+
+Just as you cannot achieve security throughout obscurity, you cannot realise it with complexity either: at the end of the day, there isn’t really a considerable difference between obscurity and complexity.
+
+Anyway, thanks for reading!  It was a really fun journey: I learned a lot and I had a blast.  If you want to report something, please do so by sending me a mail at <op at omarpolo dot com>, or by sending a message to op2 on freenode.  Bye and see you next time!

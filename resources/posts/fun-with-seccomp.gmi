@@ -1,0 +1,35 @@
+Debugging for something unrelated, I noticed that on linux gmid’ server process would crash upon SIGHUP.  I never noticed it before because (unfortunately) ‘ulimit -c 0’ seems to be the default on various systems (i.e. no core files) and I started testing on-the-fly reconfiguration only recently.
+
+What was particularly strange was that I got not logging whatsoever.  I have a compile-time switch for seccomp to raise a catchable SIGSYS to dump the number of the forbidden system call and exit, but in this case my server processes were killed by a SIGSYS without any debugging info.
+
+My first theory was that during the process shutdown (server process gracefully shuts down after a SIGHUP) an unwanted syscall was done, maybe after stderr was flushed and closed and thus my signal handler wasn’t able to print info.  But it didn’t seemed the case.
+
+On OpenBSD I have used in the past ktrace(1) to trace the system calls done by a process, so I searched for something similar for linux.  Turns out, strace is quite flexible.
+
+I attached strace to the server process:
+
+```
+-bash-5.1# strace -p 30232
+strace: Process 30232 attached
+epoll_pwait(6,
+```
+
+Good, the server process is waiting on epoll as it should, let’s send it a SIGHUP:
+
+```
+-bash-5.1# strace -p 30232
+strace: Process 30232 attached
+epoll_pwait(6, 0x55724496a0, 32, -1, NULL, 8) = -1 EINTR (Interrupted system call)
+--- SIGHUP {si_signo=SIGHUP, si_code=SI_USER, si_pid=30251, si_uid=1000} ---
+write(8, "\1", 1)                       = 1
+rt_sigreturn({mask=[]})                 = ?
++++ killed by SIGSYS +++
+```
+
+Oh, what do we have here.  rt_sigreturn(2)!  (the write is libevent handling the signal)
+
+After an event handler is called, to restore the program stack linux injects a call to rt_sigreturn.  If that syscall gets blocked by a BPF filter, it fails to handle the SIGSYS caused by the filter itself and just crash.
+
+But why for SIGHUP it crashes and for the catchable SIGSYS I was using for the debugging it doesn’t?  Well, the SIGSYS handler calls directly _exit, so we don’t rearch the sigreturn.
+
+This is just a daily remainder of how low-level seccomp is, and how sometimes it just leaves you clueless, but also a nice opportunity to learn how signals are implemented on linux.

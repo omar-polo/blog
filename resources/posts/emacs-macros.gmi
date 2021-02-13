@@ -1,0 +1,41 @@
+I just recalled how cool macros are.  I was helping to convert a manuscript for a book from LibreOffice to LaTeX, and to speed the conversion we used pandoc.  The problem was that pandoc added a lot of noise to the generated code.  Take for instance this bit:
+
+```
+\hypertarget{foo-bar-baz}{%
+\subsubsection[foo bar baz]{\texorpdfstring{\protect\hypertarget{anchor-92}{}{}Foo Bar Baz}{Foo Bar Baz}}\label{foo-bar-baz}}
+```
+
+that needs to be converted to like
+
+```
+\section{Foo Bar Baz}
+```
+
+i.e. subsection → section and remove some crufts.  If there were only a handful of those, I could have done it by hand, but given that were around 700 instance of those, it was unfeasible.
+
+My first idea was to fire up sam and play with it a bit.  Unfortunately, it’s been a while since I’ve used it extensively, so I’m a bit rusty.  The plan was to use the command x to select every paragraph, then g to filter that type of paragraphs and then something with s, but I failed.
+
+Given that I didn’t want to spend too much time on this, I tried to use an Emacs macro.  Oh boy, it went so well.
+
+The macro goes along the lines of
+```
+C-s                     ;; isearch-forward
+\                       ;; self-insert-command
+section                 ;; self-insert-command * 7
+RET                     ;; newline
+C-a                     ;; move-beginning-of-line
+2*C-M-SPC               ;; mark-sexp
+C-w                     ;; kill-region
+C-p                     ;; previous-line
+2*C-o                   ;; open-line
+C-y                     ;; yank
+C-n                     ;; next-line
+M-h                     ;; mark-paragraph
+C-w                     ;; kill-region
+```
+
+it goes to the next \section, select the LaTeX command and the text within the square brackets (using mark-sexp two times), move that bit before and then killing the paragraph.
+
+Then ‘C-- C-x e’ and the whole file was fixed.
+
+The bottom line is, I guess, use your editor and learn it, or something along those lines.

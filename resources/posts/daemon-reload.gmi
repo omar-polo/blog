@@ -1,0 +1,123 @@
+EDIT 2021/02/05: typos
+
+Some daemons are able to restart themselves.  I mean, a real in-place restart, not a naïve external stop+re-exec.
+
+Why would you care if a daemon is able to restart in place or not?  Well, it depends.  For some daemons is almost a necessary feature (think of sshd, would you be happy if when you restart the daemon it would shut down every ongoing connections?  I wouldn’t), in others a nice-to-have feature (httpd for instance), while in some case is an unnecessary complications.
+
+Generally speaking, with a various degree of importance, for network-related daemons being able to restart in place is a good thing.  It means that you (the server administrator) can adjust things while the daemon is running and this is almost invisible for the outside word: ongoing connection are preserved and new connections are subject to the new set of rules.
+
+I just implemented something similar for gmid, my Gemini server, but the overall design can be used in various kind of daemons I guess.
+
+=> gemini://gemini.omarpolo.com/pages/gmid.gmi  gmid
+
+The solution I chose was to keep a parent process that on SIGHUP re-reads the configuration and forks(2) to execute the real daemon code.  The other processes on SIGHUP simply stop accepting new connections and finish to process what they have.
+
+Doing it this way simplifies the situation when you take into consideration that the daemon may want to chroot itself, or do any other kind of sandbox, or drop privileges and so on, since the main process remains outside the chroot/sandbox with the original privileges.  It also isn’t a security concern since all it does is waiting on a signal (in other words, it cannot be influenced by the outside world.)
+
+One thing to be wary are race-conditions induced by signal handlers.  Consider this bit of code
+
+```
+/* 1 when SIGHUP is received, 0 otherwise.
+ * This var is shared with the children. */
+volatile sig_atomic_t hupped;
+
+/* … */
+
+for (;;) {
+	hupped = 0;
+
+	switch (fork()) {
+	case 0:
+		return daemon_main();
+	}
+
+	wait_sighup();
+	/* after this point hupped is 1 */
+	reload_config();
+}
+```
+
+You see the problem?
+
+(spoiler: the reload_config call is there only to trick you)
+
+We set ‘hupped’ to 0 before we fork, so our child starts with hupped set to 0, then we fork and wait.  But what if we receive a SIGHUP after we set the variable to 0, but before the fork?  Or right before wait_sighup?  The children will exit and the main process would get stuck waiting for a SIGHUP that was already delivered.
+
+Oh, and guarding the wait_sighup won’t work too
+
+```
+if (!hupped) {
+	/* what happens if SIGHUP gets delivered
+	 * here, before the wait? */
+	wait_sighup();
+}
+```
+
+Fortunately, we can block signals with sigprocmask and wait for specific signals with sigwait.
+
+=> gemini://gemini.omarpolo.com/cgi/man?sigprocmask     sigprocmask(2)
+=> gemini://gemini.omarpolo.com/cgi/man?sigwait         sigwait(2)
+
+Frankly, I never used these “advanced” signals API before, as usually the “simplified” interface were enough, but it’s nice to learn new stuff.
+
+The right order should be
+* block all signals
+* fork
+* in the child, re-enable signals
+* in the parent, wait for sighup
+* re-enable signals
+* repeat
+
+or, if you prefer some real code, something along the lines of
+
+```C
+sigset_t set;
+
+void
+block_signals(void)
+{
+	sigset_t new;
+
+	sigemptyset(&new);
+	sigaddset(&new, SIGHUP);
+	sigprocmask(SIG_BLOCK, &new, &set);
+}
+
+void
+unblock_signals(void)
+{
+	sigprocmask(SIG_SETMASK, &set, NULL);
+}
+
+void
+wait_sighup(void)
+{
+	sigset_t mask;
+	int signo;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGHUP);
+	sigwait(&mask, &signo);
+}
+
+/* … */
+
+volatile sig_atomic_t hupped;
+
+/* … */
+
+for (;;) {
+	block_signals();
+	hupped = 0;
+
+	switch (fork()) {
+	case 0:
+		unblock_signals();
+		return daemon_main();
+	}
+
+	wait_sighup();
+	unblock_signals();
+	reload_config();
+}
+```

@@ -1,0 +1,248 @@
+If it’s still not clear, I love writing parsers.  A parser is a program that given a stream of characters builds a data structure: it’s able to give meaning to a stream of bytes!  What can be more exiting to do than writing parsers?
+
+Some time ago, I tried to use transducers to parse text/gemini files but, given my ignorance with how transducers works, the resulting code is more verbose than it really needs to be.
+
+=> /post/parsing-gemtext-with-clojure.gmi Parsing gemtext with clojure
+
+Today, I gave myself a second possibility at building parsers on top of transducers, and I think the result is way more clean and maybe even shorter than my text/gemini parser, even if the subject has a more complex grammar.
+
+Today’s subject, as you may have guessed by the title of the entry, are PO files.
+
+=> https://www.gnu.org/software/gettext/manual/html_node/PO-Files.html GNU gettext description of PO files.
+
+PO files are commonly used to hold translations data.  The format, as described by the link above, is as follows:
+
+``` example of PO file
+white-space
+#  translator-comments
+#. extracted-comments
+#: reference...
+#, flag...
+#| msgid previous-untranslated-string
+msgid untranslated-string
+msgstr translated-string
+```
+
+Inventing your own translations system almost never has a good outcome; especially when there are formats such as PO that are supported by a variety of tools, including nice GUIs such as poedit.  The sad news is that in the Clojure ecosystem I couldn’t find what I personally consider a good option when it comes to managing translations.
+
+There’s Tempura written by Peter Taoussanis (which, by the way, maintains A LOT of cool libraries), but I don’t particularly like how it works, and I have to plug a parser from/to PO by hand if I want the translators to use poedit (or similar software.)
+
+Another option is Pottery, which I overall like, but
+* multiline translation strings are broken: I have a pending PR since september 2020 to fix it, but no reply as of time of writing
+* they switched to the hippocratic license, which is NOT free software, so there are ethic implications (ironic, uh?)
+
+=> https://github.com/ptaoussanis/tempura       Tempura
+=> https://github.com/brightin/pottery          Pottery
+
+So here’s why I’m rolling my own.  It’s not yet complete, and I’ve just finished the first version of the PO parser/unparser, but I though to post a literal programming-esque post describing how I’m parsing PO files using transducers.
+
+DISCLAIMER: the code was not heavily tested yet, so it may mis-behave.  It’s just for demonstration purposes (for the moment.)
+
+```clojure
+(ns op.rtr.po
+  "Utilities to parse PO files."
+  (:require
+   [clojure.edn :as edn]
+   [clojure.string :as str])
+  (:import
+   (java.io StringWriter)))
+```
+
+Well, we’ve got a nice palindrome namespace, which is good, and we’re requiring a few things.  clojure.string is quite obvious, since we’re gonna play with them a lot.  We’ll also (ab)use clojure.edn during the parsing.  StringWriter is imported only to provide a convenience function for parsing PO from strings.  Will come in handy also for testing purposes.
+
+The body of this library is the transducer parse, which is made by a bunch of small functions that do simple things.
+
+```clojure
+(def ^:private split-on-blank
+  "Transducer that splits on blank lines."
+  (partition-by #(= % "")))
+```
+
+The split-on-blank transducer will group sequential blank lines and sequential non-blank lines together, this way we can separate each entry in the file.
+
+```clojure
+(def ^:private remove-empty-lines
+  "Transducer that remove groups of empty lines."
+  (filter #(not= "" (first %))))
+```
+
+The remove-empty-lines will simply remove the garbage that split-on-blank produces: it will get rid of the block of empty lines, so we only have sequences of entries.
+
+```clojure
+(declare parse-comments)
+(declare parse-keys)
+
+(def ^:private parse-entries
+  (let [comment-line? (fn [line] (str/starts-with? line "#")))]
+    (map (fn [lines]
+           (let [[comments keys] (partition-by comment-line? lines)]
+             {:comments (parse-comments comments)
+              :keys     (parse-keys keys)}))))
+```
+
+Ignoring for a bit parse-comments and parse-keys, this step will take a block of lines that constitute an entry, and parse it into a map of comments and keys, by using partition-by to split the lines of the entries into two.
+
+And we have every piece, we can define a parser now!
+
+```clojure
+(def ^:private parser
+  (comp split-on-blank
+        remove-empty-lines
+        parse-entries))
+```
+
+We can provide a nice API to parse PO file from various sources very easily:
+
+```clojure
+(defn parse
+  "Parse the PO file given as stream of lines `l`."
+  [l]
+  (transduce parser conj [] l))
+
+(defn parse-from-reader
+  "Parse the PO file given in reader `rdr`.  `rdr` must implement `java.io.BufferedReader`."
+  [rdr]
+  (parse (line-seq rdr)))
+
+(defn parse-from-string
+  "Parse the PO file given as string."
+  [s]
+  (parse (str/split-lines s)))
+```
+
+And we’re done.  This was all for this time.  Bye!
+
+Well, no… I still haven’t provided the implementation for parse-comments and parse-keys.  To be honest, they’re quite ugly.  parse-keys in particular is the ugliest part of the library as of now, but y’know what?  Were in 2021 now, if it runs, ship it!
+
+Jokes aside, I should refactor these into something more manageable, but I will focus on the rest of the library fist.
+
+parse-comments takes a block of comment lines and tries to make a sense out if it.
+
+```clojure
+(defn- parse-comments [comments]
+  (into {}
+        (for [comment comments]
+          (let [len          (count comment)
+                proper?      (>= len 2)
+                start        (when proper? (subs comment 0 2))
+                rest         (when proper? (subs comment 2))
+                remove-empty #(filter (partial not= "") %)]
+            (case start
+              "#:" [:reference (remove-empty (str/split rest #" +"))]
+              "#," [:flags (remove-empty (str/split rest #" +"))]
+              "# " [:translator-comment rest]
+              ;; TODO: add other types
+              [:unknown-comment comment])))))
+```
+
+We simply loop through each line and do some simple pattern matching on the first two bytes of each.  We then group all those vector of two elements into a single hash map.  I should probably refactor this to use group-by to avoid loosing some information: say one provides two reference comments, we would lose one of the two.
+
+To define parse-keys we need an helper: join-sequential-strings
+
+```clojure
+(defn- join-sequential-strings [rf]
+  (let [acc (volatile! nil)]
+    (fn
+      ([] (rf))
+      ([res] (if-let [a @acc]
+               (do (vreset! acc nil)
+                   (rf res (apply str a)))
+               (rf res)))
+      ([res i]
+       (if (string? i)
+         (do (vswap! acc conj i)
+             res)
+         (rf (or (when-let [a @acc]
+                   (vreset! acc nil)
+                   (rf res (apply str a)))
+                 res)
+             i))))))
+```
+
+The thing about this post, compared to the one about text/gemini, is that I’m becoming more comfortable with transducers, and I’m starting to use the standard library more and more.  In fact, this is the only transducer written by hand we’ve seen so far.
+
+As every respectful stateful transducer, it allocates its state, using volatile!.  rf is the reducing function, and our transducer function is the one with three arities inside the let.
+
+The one-arity branch is called to signal the end of the stream.  The transducer has reached the end of the sequence and call us with the accumulated result ‘res’.  There we flush our accumulator, if we had something accumulated, or call the reducing function on the result and end.
+
+The two-arity branch is called on each item in that was fed to the transducer.  The first argument, res, is the accumulated result, and i is the current item: if it’s a string, we accumulate it into acc, otherwise we drain our accumulator and pass i to rf as-is.
+
+One important thing I learned writing it is that, even if it should be obvious, rf is a pure function.  When we call rf no side-effects occurs.  So, to provide two items we can’t simply call rf two times: we have to call rf on the output of rf, and make sure we return it!
+
+In this case, if we’ve accumulated some strings, we reset our accumulator and call rf on the concatenation of them.  Then we call rf on this new result, or on the original res if we haven’t accumulated anything, passing i.
+
+It may becomes clearer if we replace rf with conj and res with [] (the empty vector).
+
+With this, we can finally define parse-keys and end our little parser:
+
+```clojure
+(def ^:private keywordize-things
+  (map #(if (string? %) % (keyword %))))
+
+(defn- parse-keys [keys]
+  (apply hash-map
+         (transduce (comp join-sequential-strings
+                          keywordize-things)
+                    conj
+                    []
+                    ;; XXX: double hack for double fun!
+                    (edn/read-string (str "[" (apply str (interpose " " keys)) "]")))))
+```
+
+keywordize-things is another transducer that would turn into a keyword everything but strings, and parse-keys compose these last two transducer to parse the entry; but it does so with a twist, by abusing edn/read-string.
+
+In a PO file, after the comment each entry has a section like this:
+```
+msgid “message id”
+…
+```
+that is, a keyword followed by a string.  But the string can span multiple lines:
+```
+msgid ""
+"hello\n"
+"world"
+```
+
+To parse these situation, and to handle things like \n or \" inside the strings, I’m abusing the edn/read-string function.  I’m concatenating every line by joining them with a space in between, and then wrapping the string into “[” and “]”, before calling the edn parser.  This way, the edn parser will turn ‘msgid’ (for instance) into a symbol, and read every string for us.
+
+Then we use the transducers defined before to join the strings and turn the symbols into keywords and we have a proper parser.  (Well, rewriting this hack will probably be the argument of a following post!)
+
+A quick test:
+
+```clojure
+(parse-from-string "
+
+#: lib/error.c:116
+msgid \"Unknown system error\"
+msgstr \"Errore sconosciuto del sistema\"
+
+#: lib/error.c:116 lib/anothererror.c:134
+msgid \"Known system error\"
+msgstr \"Errore conosciuto del sistema\"
+
+")
+;; =>
+;; [{:comments {:reference ("lib/error.c:116")}
+;;   :keys {:msgid "Unknown system error"
+;;          :msgstr "Errore sconosciuto del sistema"}}
+;;  {:comments {:reference ("lib/error.c:116" "lib/anothererror.c:134")}
+;;   :keys {:msgid "Known system error"
+;;          :msgstr "Errore conosciuto del sistema"}}]
+```
+
+Yay! It works!
+
+Writing an unparse function is also pretty easy, and is left as an exercise to the reader, because where I live now it’s pretty late and I want to sleep :P
+
+To conclude, another nice property of parser is that if you have a “unparse” operation (i.e. turning your data structure back into its textual representation), then the composition of these two should be the identity function.  It’s a handy property for testing!
+
+```clojure
+(let [x [{:comments {:reference '("lib/error.c:116")}
+          :keys     {:msgid  "Unknown system error"
+                     :msgstr "Errore sconosciuto del sistema"}}]]
+  (= x
+     (parse-from-string (unparse-to-string x))))
+;; => true
+```
+
+This was all for this time!  (For real this time.)  Thanks for reading.
