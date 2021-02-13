@@ -1,0 +1,16 @@
+# vc-got.el
+
+vc-got.el is an Emacs VC backend for the Game of Tree VCS.
+
+=> https://gameoftrees.org/ Game of Tree website
+
+It’s still WIP, there are some unfinished parts, but is usable (I’m using almost every day).
+
+You can fetch the code with git:
+```
+$ git clone https://git.omarpolo.com/vc-got
+```
+or via the github mirror:
+```
+$ git clone https://github.com/omar-polo/vc-got
+```
