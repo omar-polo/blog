@@ -3,9 +3,14 @@
 import os
 import re
 import sqlite3
-import sys
 import traceback
-import urllib.parse
+from urllib.parse import unquote
+
+sqlports = os.environ.get("SQLPORTS")
+
+query = os.environ.get("QUERY_STRING")
+script_path = os.environ.get("SCRIPT_NAME")
+path = os.environ.get("PATH_INFO")
 
 query_search = """
 select webpkg_fts.pkgstem,
@@ -22,6 +27,7 @@ query_by_fullpkgpath = """
 select p.fullpkgpath,
        pp.pkgstem,
        pp.comment,
+       pp.pkgname,
        d.value,
        replace(replace(e.value, '@', ' at '), '.', ' dot '),
        r.value,
@@ -34,13 +40,24 @@ select p.fullpkgpath,
  where p.fullpkgpath = ?
 """
 
+query_all_categories = """
+select distinct value from categories order by value
+"""
+
+query_all_in_category = """
+select fullpkgpath from categories where value = ? order by fullpkgpath
+"""
+
+
 def verbatim(alt, text):
     print("```", alt)
     for line in text.splitlines():
         if line.startswith("```"):
-            print(" ")
-        print(line)
+            print(" ", line)
+        else:
+            print(line)
     print("```")
+
 
 def printraw(text):
     for line in text.splitlines():
@@ -49,84 +66,161 @@ def printraw(text):
            or line.startswith(">")   \
            or line.startswith("#")   \
            or line.startswith("*"):
-            print(" ")
-        print(line)
+            print(" ", line)
+        else:
+            print(line)
 
-sqlports = os.environ.get("SQLPORTS")
-query = os.environ.get("QUERY_STRING")
-script_path = os.environ.get("SCRIPT_NAME")
-path = os.environ.get("REQUEST_RELATIVE")
+
+def reply(code, meta):
+    print(f"{code} {meta}\r")
+
+
+def homepage():
+    reply(20, "text/gemini;lang=en")
+    print("# GemPKG")
+    print("")
+    print("Welcome to GemPKG,",
+          "the gemini interface for the OpenBSD ports collection.")
+    print("")
+    print(f"=> {script_path}/search Search for a package")
+    print(f"=> {script_path}/all All categories")
+    print("")
+    print(
+        "What you search will be matched against the package name (pkgstem),",
+        "comment, DESCR and maintainer.")
+    foot()
+
+
+def nav():
+    print(f"=> {script_path}/ GemPKG")
+    print(f"=> {script_path}/search Search for a package")
+    print(f"=> {script_path}/all All Categories")
+    print("")
+
+
+def foot():
+    print()
+    print()
+    print("---")
+    print(
+        "All the data is provided by sqlports",
+        "and is relative to OpenBSD-CURRENT."
+    )
+
+
+def fts_escape_word(s):
+    return '"' + s.replace('"', '""') + '"'
+
+
+def fts_escape(s):
+    return ' '.join(fts_escape_word(i) for i in s.split())
+
+
+def searchpage():
+    global query
+
+    if not query:
+        reply(10, "search for a package")
+        return
+
+    query = unquote(query)
+
+    # try the raw query.  If it isn't a valid fts string (i.e. "c++"),
+    # escape it and retry
+    try:
+        cursor = conn.execute(query_search, (query, ))
+    except BaseException:
+        cursor = conn.execute(query_search, (fts_escape(query), ))
+
+    reply(20, "text/gemini;lang=en")
+    nav()
+    for row in cursor:
+        stem, comment, fullpkgpath = row
+        print(f"=> {script_path}/{fullpkgpath}/ {stem}")
+        print(f"> {comment}")
+        print("")
+        print("")
+    foot()
+
+
+def allcatspage():
+    cursor = conn.execute(query_all_categories)
+    reply(20, "text/gemini;lang=en")
+    nav()
+    print("# All categories")
+    for row in cursor:
+        (fullpkgpath, ) = row
+        print(f"=> {script_path}/{fullpkgpath}/ {fullpkgpath}")
+    foot()
+
+
+def bycatpage():
+    cursor = conn.execute(query_all_in_category, (path, ))
+    reply(20, "text/gemini;lang=en")
+    nav()
+    print(f"# All ports in category {path}")
+    for row in cursor:
+        (fullpkgpath, ) = row
+        if fullpkgpath.find(",") != -1:  # skip flavors
+            continue
+        print(f"=> {script_path}/{fullpkgpath}/ {fullpkgpath}")
+    foot()
+
+
+def portpage(row):
+    fullpkgpath, stem, comment, pkgname, descr, maintainer, readme, www = row
+    reply(20, "text/gemini;lang=en")
+    nav()
+    print(f"# {path}", "v" + re.sub(r".*-", "", pkgname))
+    print(f"``` Command to execute in order to install the package {stem}")
+    print(f"# pkg_add {stem}")
+    print("```")
+    print("")
+    print(f"> {comment}")
+    print("")
+    print(f"=> https://cvsweb.openbsd.org/ports/{fullpkgpath} CVS web")
+    if www:
+        print(f"=> {www} WWW")
+    print("")
+    print("Maintainer:", maintainer)
+    print("")
+    print("## Description")
+    printraw(re.sub(r"\n", " ", descr))
+    print("")
+    if readme:
+        print("## Readme")
+        verbatim(f"README for {stem}", readme)
+    foot()
+
 
 if not path or path == '/':
-    print("20 text/gemini;charset=utf-8\r")
-    print("Welcome to GemPKG, the gemini interface to the OpenBSD port collection.")
-    print("")
-    print(f"=> /{script_path}/search Search for a package")
-    print("")
-    print("What you search will be matched against the package name (pkgstem), the comment, the DESCR and the maintainer.")
+    homepage()
     exit(0)
+
+if not path.endswith("/"):
+    reply(31, f"{script_path}{path}/")
+    exit(0)
+# drop the leading and trailing /
+path = path.strip("/")
 
 try:
     conn = sqlite3.connect(sqlports)
 
-    if path == 'search' or path == 'search/':
-        if not query:
-            print("10 query:\r")
-            exit(0)
-
-        query = urllib.parse.unquote(query)
-        cursor = conn.execute(query_search, (query,))
-
-        print("20 text/gemini;charset=utf-8\r")
-        print(f"=> /{script_path} GemPKG home")
-        print(f"=> /{script_path}/search Search the OpenBSD port collection")
-        print("")
-        print(f"# Search results for \"{query}\"")
-        print("")
-        for row in cursor:
-            stem, comment, fullpkgpath = row
-            print(f"=> /{script_path}/{fullpkgpath} {stem}")
-            print(f"> {comment}")
-            print("")
-            print("")
-        exit(0)
+    if path == 'search':
+        searchpage()
+    elif path == 'all':
+        allcatspage()
     else:
-        cursor = conn.execute(query_by_fullpkgpath, (path,))
+        cursor = conn.execute(query_by_fullpkgpath, (path, ))
         row = cursor.fetchone()
         if not row:
-            print("51 package not found")
-            exit(0)
-
-        fullpkgpath, stem, comment, descr, maintainer, readme, www = row
-
-        print("20 text/gemini;charset=utf-8\r")
-        print(f"=> /{script_path} GemPKG home")
-        print(f"=> /{script_path}/search Search the OpenBSD port collection")
-        print("")
-        print(f"# {path}")
-        print(f"``` The command to execute to install the package {stem}")
-        print(f"# pkg_add {stem}")
-        print("```")
-        print("")
-        print(f"> {comment}")
-        print("")
-        print(f"=> https://cvsweb.openbsd.org/ports/{stem} CVS web")
-        if www:
-            print(f"=> {www} WWW")
-        print("")
-        print("Maintainer:", maintainer)
-        print("")
-        print("## Description")
-        printraw(re.sub(r"\n", " ", descr))
-        print("")
-        if readme:
-            print("## Readme")
-            verbatim(f"README for the package {stem}", readme)
-
+            bycatpage()
+        else:
+            portpage(row)
 except SystemExit:
     pass
-except:
-    print("40 database error\r")
+except BaseException:
+    reply(50, "internal server error")
     traceback.print_exc()
 finally:
     conn.close()
