@@ -34,6 +34,7 @@
     [:paragraph ""]
     [:paragraph ""]
     [:paragraph "-- text: CC-BY-SA-4.0; code: MIT (unless specified otherwise)"]
+    [:paragraph "For comments, write at < blog at omarpolo dot com >"]
     [:paragraph "Capsule proudly assembled with Clojure"]
     [:link "https://git.omarpolo.com/blog/" "sources"])))
 
@@ -102,7 +103,7 @@
   (with-page {}
     [:h2 (format "Posts tagged with #%s" tag)]
     [:paragraph ""]
-    [:paragraph "Note: note every post is currently available over Gemini."]
+    [:paragraph "Note: not every post is currently available over Gemini."]
     [:paragraph ""]
     (map (partial post-fragment {:title-with-link? true})
          (->> posts
