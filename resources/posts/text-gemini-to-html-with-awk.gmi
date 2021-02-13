@@ -15,7 +15,7 @@ Cgit has this cool things called filters: you can write script (or any executabl
 
 There are a few text/gemini to HTML converters, but I rolled my own.  NIH.  Well, not really.  I currently run cgit on a FreeBSD jail, and I don’t like the idea of installing too much things inside it.  I could have built a (say) go executable linked statically and copied into the jail, but I don’t really like the idea.
 
-Instead, I wrote an AWK script to convert text/gemini files to HTML.  I was kinda surprised that nobody had already written one in AWK (or Perl).  It isn’t too ugly, and was an occasion to review the language.
+Instead, I wrote an AWK script to convert text/gemini files to HTML.  I was kinda surprised that nobody had already written one in AWK (or Perl).  It isn’t too ugly, and was an chance to review the language.
 
 AWK is, in my opinion, an almost perfect scripting language.  It is quick, easy to learn and to use (both as a filter in pipe and as a standalone script) and packed with nice and essential features.  But it lacks something.  I don’t know exactly what, but every time I use it (for more than a one-liner) I get the impression that something is missing.
 
@@ -23,26 +23,16 @@ Anyway, here’s the script in all its glory.  This time I discovered the “nex
 
 (it’s open to improvements, but at the moment I’m happy with it)
 
+EDIT 2021/02/03: after seeing another decoder, I took some time to refactor the original converter.  I changed reordered the matches so the pre handling is before everything else.
+
+=> https://gist.github.com/dracometallium/bf70ae09b4dd9a857d33e93daa2810c4 dracometallium’ gmi2html.awk
+
 ```awk
 #!/usr/bin/awk -f
 
 BEGIN {
 	in_pre = 0;
 	in_list = 0;
-}
-
-!in_pre && /^###/	{ output("<h3>", substr($0, 4), "</h3>"); next }
-!in_pre && /^##/	{ output("<h2>", substr($0, 3), "</h2>"); next }
-!in_pre && /^#/		{ output("<h1>", substr($0, 2), "</h1>"); next }
-!in_pre && /^>/		{ output("<blockquote>", substr($0, 2), "</blockquote>"); next }
-!in_pre && /^\*/	{ output("<li>", substr($0, 2), "</li>"); next }
-
-!in_pre && /^=>/ {
-	$0 = substr($0, 3);
-	link = $1;
-	$1 = "";
-	output_link(link, $0);
-	next;
 }
 
 !in_pre && /^```/ {
@@ -54,10 +44,24 @@ BEGIN {
 	print "<pre>";
 	next
 }
-
 in_pre && /^```/	{ in_pre = 0; print "</pre>"; next }
-!in_pre			{ output("<p>", $0, "</p>"); next }
 in_pre			{ print san($0); next }
+
+/^###/	{ output("<h3>", substr($0, 4), "</h3>"); next }
+/^##/	{ output("<h2>", substr($0, 3), "</h2>"); next }
+/^#/	{ output("<h1>", substr($0, 2), "</h1>"); next }
+/^>/	{ output("<blockquote>", substr($0, 2), "</blockquote>"); next }
+/^\*/	{ output("<li>", substr($0, 2), "</li>"); next }
+
+/^=>/   {
+	$0 = substr($0, 3);
+	link = $1;
+	$1 = "";
+	output_link(link, $0);
+	next;
+}
+
+//	{ output("<p>", $0, "</p>"); next }
 
 END {
 	if (in_list)
@@ -78,7 +82,7 @@ function san(s) {
 	return s;
 }
 
-function output(ot, content, et) {
+function output(ot, content, ct) {
 	content = trim(content);
 
 	if (!in_list && ot == "<li>") {
@@ -94,7 +98,7 @@ function output(ot, content, et) {
 	if (ot == "<p>" && content == "")
 		return;
 
-	printf("%s%s%s\n", ot, san(content), et);
+	printf("%s%s%s\n", ot, san(content), ct);
 }
 
 function output_link(link, content) {
