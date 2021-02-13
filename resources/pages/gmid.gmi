@@ -1,8 +1,6 @@
 # gmid
 
-gmid is a small, almost no-dependencies, gemini server for static content.
-
-It's a short program that uses libtls (a GREAT tls library from the OpenBSD folks) to serve static content and execute CGI scripts.
+gmid is a fast, small, and secure Gemini server.  It uses libtls (a GREAT tls library from the OpenBSD folks) to serve static content and execute CGI scripts.
 
 => https://git.omarpolo.com/gmid        source code
 => https://github.com/omar-polo/gmid	GitHub mirror
@@ -16,10 +14,33 @@ or via the github mirror:
 $ git clone https://github.com/omar-polo/gmid
 ```
 
+
+## Features
+
+(random order)
+
+* reconfiguration: reload the running configuration without interruption
+* sandboxed by default on OpenBSD, Linux and FreeBSD
+* IRI support (RFC3987)
+* punycode support
+* dual stack (IPv4 and IPv6)
+* automatic certificate generation for config-less mode
+* CGI scripts
+* (very) low memory footprint
+* event-based asynchronous I/O model
+* small codebase, easily hackable
+* virtual hosts
+* per-location rules
+* optional directory listings
+* configurable mime types
+* chroot support
+
+
 ## Future plans
 
 This is mostly a TODO/wish list of things, just to get an idea of what I'm gonna do (and to remind to myself too).
 
+* per-server (or even per-path?) logging
+* different logging styles
 * listen only on specific IPs
-* automatic redirects and errors page
 * customize error messages
