@@ -77,7 +77,7 @@
              "resources/out/http/img"]]
     (.. (File. d) mkdirs)))
 
-(defn gemini-post [{? :gemtext?}] ?)
+(def gemini-post :gemtext?)
 
 (defn post-pages [{:keys [proto]}]
   (let [tags (keys @per-tag)
@@ -143,15 +143,18 @@
         (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
 
 (defn generate-robots-txt []
-  (spit "resources/out/gemini/robots.txt" "# block some bots from accessing the gempkg
+  (spit "resources/out/gemini/robots.txt" "# block some bots from accessing gempkg/man
 User-agent: archiver
-Disallow: /cgi/gempkg/
-
-User-agent: indexer
 Disallow: /cgi/gempkg/
 
 User-agent: researcher
 Disallow: /cgi/gempkg/
+
+User-agent: archiver
+Disallow: /cgi/man/
+
+User-agent: researcher
+Disallow: /cgi/man/
 "))
 
 (defn copy-dir
