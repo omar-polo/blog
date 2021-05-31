@@ -6,9 +6,9 @@
 (defn feed-page [posts]
   (gemtext/unparse
    (list
-    [:h1 "yumh"]
-    [:blockquote "Writing about things, sometimes"]
-    [:paragraph ""]
+    [:header-1 "yumh"]
+    [:quote "Writing about things, sometimes"]
+    [:text ""]
     (for [post posts]
       (let [{:keys [title date slug]} post
             url (str "gemini://gemini.omarpolo.com/post/" slug ".gmi")]
@@ -17,57 +17,70 @@
 (defn with-page [_ & body]
   (gemtext/unparse
    (list
-    [:verbatim
-"                       _
- _   _ _   _ _ __ ___ | |__
-| | | | | | | '_ ` _ \\| '_ \\    Writing about things,
-| |_| | |_| | | | | | | | | |   sometimes.
- \\__, |\\__,_|_| |_| |_|_| |_|
- |___/"]
-    [:paragraph ""]
+    body
+    [:text ""]
+    [:text ""]
+    [:text ""]
+    [:text "-- text: CC-BY-SA-4.0; code: MIT (unless specified otherwise)"]
+    [:text "For comments, write at < blog at omarpolo dot com >"]
+    [:text "Capsule proudly assembled with Clojure"]
+    [:link "https://git.omarpolo.com/blog/" "sources"])))
+
+(defn with-default-template [_ & body]
+  (with-page {}
+    [:header-1 "yumh"]
+    [:quote "Writing about things, sometimes"]
+    [:text ""]
     [:link "/" "Home"]
     [:link "/tags.gmi" "All Tags"]
     [:link "/pages/projects.gmi" "Projects"]
-    [:paragraph ""]
-    body
-    [:paragraph ""]
-    [:paragraph ""]
-    [:paragraph ""]
-    [:paragraph "-- text: CC-BY-SA-4.0; code: MIT (unless specified otherwise)"]
-    [:paragraph "For comments, write at < blog at omarpolo dot com >"]
-    [:paragraph "Capsule proudly assembled with Clojure"]
-    [:link "https://git.omarpolo.com/blog/" "sources"])))
+    [:text ""]
+    body))
 
 (defn post-fragment
   [{:keys [full? title-with-link?]}
    {:keys [title date slug tags short body toot music xkcd] :as post}]
   (list
    (if title-with-link?
-     [:link (str "/post/" slug ".gmi") title]
-     [(if full? :h1 :h2) title])
+     [:link (str "/post/" slug ".gmi") (str (time/fmt-iso8601 date) " - " title)]
+     [(if full? :header-1 :header-2) title])
+   (if full?
+     [:text ""]
+     [:quote short])
    (when full?
-     [:paragraph ""])
-   [:paragraph (str "Written by Omar Polo on " (time/fmt-loc date)
-                    (when music
-                      (str " while listening to “" (:title music) "”"
-                           (when-let [by (:by music)]
-                             (str " by " by)) ))
-                    ".")]
-   [:paragraph "Tagged with:"]
+     [:text (time/fmt-iso8601 date)])
+   (when music
+     [:text (str "Written while listening to “" (:title music) "”"
+                      (when-let [by (:by music)]
+                        (str " by " by))
+                      ".")])
+   [:text "Tagged with:"]
    (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
         (sort tags))
    (when xkcd
      [:link (str "https://xkcd.com/" xkcd) (format "Relevant XKCD – #%d" xkcd)])
-   (if full?
-     (list [:paragraph ""]
-           (gemtext/parse body))
-     (when short [:blockquote short]))
-   [:paragraph ""]))
+   (when full?
+     (list [:text ""]
+           (gemtext/parse body)))
+   [:text ""]))
 
 (defn home-page [{:keys [posts has-next has-prev nth]}]
-  (with-page {}
-    [:h2 "Recent posts"]
-    [:paragraph ""]
+  (with-default-template
+    [:text ""]
+    [:text "Welcome to my gemlog!  Sometimes I even remember that I have a blog and post something.  My main interests are computer science, operating systems (BSDs in particular), programming languages (especially C, Go, LISP in its various incarnations).  I also have an Italian capsule where I write about more \"casual\" stuff:"]
+    [:link "gemini://it.omarpolo.com" "l'angolo di yumh"]
+    [:text ""]
+    ;;[:text "Did I mention that I like to write code?  Some Gemini-related projects I develop:"]
+    ;;[:link "/pages/gmid.gmi" "gmid: a fast, small, and secure Gemini server"]
+    ;;[:link "/pages/telescope.gmi" "telescope: yet another ncurses Gemini browser"]
+    ;;[:link "/pages/libphos.gmi" "libphos: a library to develop Gemini servers and clients"]
+    ;;[:text ""]
+    [:text "Some Gemini services on this capsule:"]
+    [:link "/cgi/man"    "Look up a manpage"]
+    [:link "/cgi/gempkg" "Browse the OpenBSD ports tree"]
+    [:text ""]
+    [:header-2 "Recent posts"]
+    [:text ""]
     (map (partial post-fragment {:title-with-link? true})
          posts)
     (when has-prev
@@ -82,29 +95,30 @@
        "Older Posts"])))
 
 (defn custom-page [{:keys [body]}]
-  (with-page {}
-    (gemtext/parse body)))
+  (apply with-default-template (gemtext/parse body)))
 
 (defn post-page [{:keys [title short] :as post}]
   (with-page {}
+    [:link ".." "↩ back to the index"]
+    [:text ""]
     (post-fragment {:full? true}
                    post)))
 
 (defn tags-page [tags]
-  (with-page {}
-    [:h2 "All tags"]
-    [:paragraph ""]
+  (with-default-template
+    [:header-2 "All tags"]
+    [:text ""]
     (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
          (sort (fn [a b]
                    (compare (.toLowerCase (name a))
                             (.toLowerCase (name b)))) tags))))
 
 (defn tag-page [tag posts]
-  (with-page {}
-    [:h2 (format "Posts tagged with #%s" tag)]
-    [:paragraph ""]
-    [:paragraph "Note: not every post is currently available over Gemini."]
-    [:paragraph ""]
+  (with-default-template
+    [:header-2 (format "Posts tagged with #%s" tag)]
+    [:text ""]
+    [:text "Note: not every post is currently available over Gemini."]
+    [:text ""]
     (map (partial post-fragment {:title-with-link? true})
          (->> posts
               (sort-by :date)
