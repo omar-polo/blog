@@ -6,27 +6,31 @@ gmid is a fast, small, and secure Gemini server.  It uses libtls (a GREAT tls li
 => https://github.com/omar-polo/gmid	GitHub mirror
 
 You can fetch the code with git:
-```
-$ git clone https://git.omarpolo.com/gmid
-```
+
+> git clone https://git.omarpolo.com/gmid
+
 or via the github mirror:
-```
-$ git clone https://github.com/omar-polo/gmid
-```
+
+> git clone https://github.com/omar-polo/gmid
+
+The manpage is available at
+=> /cgi/man/1/gmid gmid(1)
 
 
 ## Features
 
 (random order)
 
-* reconfiguration: reload the running configuration without interruption
+* reconfiguration: reload the running configuration without
+* interruption
 * sandboxed by default on OpenBSD, Linux and FreeBSD
+* automatic redirect/error pages (see `block return`)
 * IRI support (RFC3987)
 * punycode support
 * dual stack (IPv4 and IPv6)
 * automatic certificate generation for config-less mode
 * CGI scripts
-* (very) low memory footprint
+* low memory footprint
 * event-based asynchronous I/O model
 * small codebase, easily hackable
 * virtual hosts
