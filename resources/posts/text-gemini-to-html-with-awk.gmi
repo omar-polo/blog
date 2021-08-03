@@ -23,7 +23,7 @@ Anyway, here’s the script in all its glory.  This time I discovered the “nex
 
 (it’s open to improvements, but at the moment I’m happy with it)
 
-EDIT 2021/02/03: after seeing another decoder, I took some time to refactor the original converter.  I changed reordered the matches so the pre handling is before everything else.
+EDIT 2021/02/03: after seeing another decoder, I took some time to refactor the original converter.  I reordered the matches so the pre handling is before everything else.
 
 => https://gist.github.com/dracometallium/bf70ae09b4dd9a857d33e93daa2810c4 dracometallium’ gmi2html.awk
 
