@@ -1,0 +1,52 @@
+It took me a while to release this 1.6 version compared to the previous ones, but we’re finally here!
+
+The headlines for this version are an improved CGI implementation and performance, but you’ll find the full changelog at the end of this entry.
+
+libevent is now a dependency of gmid: the new event-loop should be faster than the old poll(2)-based one.
+
+Thanks to a clear design and privilege-separation, it was easy to spawn multiple server processes: this increases the performance and prevents delays.  Three server processes are run by default, but the actual number it’s tunable via the new global ‘prefork’ option.
+
+The configuration file was enriched also with some other additions:
+* ‘block return’ and ‘strip’ allows to define dynamic redirects and/or error pages
+* ‘entrypoint’ forwards every request for a virtual host to a CGI script
+* ‘log’ allows to control logging per virtual host
+* ‘require client ca’ allows to restrict part of a virtual-host only to clients that provides a certificate signed by a specific CA
+
+Unfortunately, there are also a couple of breaking changes.  I had to change the CGI environment variables so they match the CGI specification.  The good news is that now CGI scripts are a bit more portable and that these breaking changes were done early in this release cycle, so if you started using gmid after the 1.5 release chances are that you’re already using these new variables.
+
+In particular:
+* QUERY_STRING is always percent-encoded
+* PATH_INFO and PATH_TRANSLATED always starts with a forward slash (/)
+* some variables have been renamed.
+
+I set up a testing page that shows the various variables:
+
+=> gemini://gemini.omarpolo.com/cgi/env  CGI test page
+
+
+## v1.6 “Stargazers” Changelog
+
+### New features
+
+* reload configuration on SIGHUP without disconnecting the clients
+* added ‘block return’, ‘strip’ and ‘entrypoint’ options
+* added a ‘prefork’ option to control the number of server processes (default: 3)
+* added ‘require client ca’ option to require client certificates signed by a specific CA
+* added ‘log’ option to enable/disable logging per-vhost
+* define TLS_CLIENT_NOT_BEFORE and TLS_CLIENT_NOT_AFTER for CGI scripts
+
+### Improvements
+
+* improved the directory listing: print the path of the current directory
+* for CGI scripts, split the query in words and pass each of them via argv too
+* [FreeBSD] add capsicum to the logger process
+
+### Bug fixes
+
+* CGI scripts now have only std{in,out,err} open
+* change some CGI variables to match the correct behaviour
+
+### Breaking changes
+
+* relative paths are not allowed in the configuration file
+* some environment variables for CGI script were changed.

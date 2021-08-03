@@ -1,0 +1,58 @@
+On UNIX when you type C-z (hold control and press ‘z’) at your terminal the program you have opened, let’s say ed(1), will be suspended and put into the background.  Later, with ‘fg’ it can be bring back into foreground.
+
+But how it works?
+
+When the tty driver sees that you’ve typed control-z it’ll send a SIGTSTP signal to the process in the foreground.  Then, the shell should do its part and handle the situation, usually by printing something like “Suspended $progname” and the prompt.
+
+Actually, the exact key binding is probably customizable via stty(1), but that’s not important.
+
+The tty driver is not the only one that’s entitled to send signals.  Any program can send a SIGTSTP to any other program (OK, as long as they are running as the same user, or you’re root); so, for instance, you can kill ed with ‘kill -TSTP $pid’ from another terminal to achieve the same thing as pressing C-z.
+
+## ncurses
+
+In a ideal world a program shouldn’t know anything about SIGTSTP.  This is not an ideal world though.  If you don’t trust me, the proof is that ed is not the most used text editor.  Most interactive terminal applications uses ncurses (or similar).
+
+By calling ‘raw()’ when initialising ncurses, the program won’t receive signals for special keys (like control-c, control-z, …), so it can handle those keys by itself.  (Think how funny must be running emacs in a terminal and seeing it being killed every time you press control-c.)
+
+So, how can ncurses applications (like vi, tmux & co) suspend themselves?  The answer is pretty easy given the context, yet it took me a while to figure it out:
+
+```C snippet that shows how to suspend the current program and give the control back to the shell.
+#include <ncurses.h>
+#include <signal.h>
+#include <unistd.h>
+
+/* if you’re using ncurses: */
+endwin();
+
+/* kill the current program */
+kill(getpid(), SIGSTOP);
+
+/* if you’re using ncurses, redraw the UI */
+refresh();
+clear();
+redraw_my_awesome_ui();
+```
+
+Yes, by killing yourself.  (UNIX terminology leads to funny sentences, see?)
+
+But why SIGSTOP and not SIGTSTP as previously stated?  Well, the manpage for signal(3) says that SIGSTOP and SIGTSTP have the same default action, but while a SIGTSTP can be caught or ignored, SIGSTOP cannot.
+
+The astute reader may have read the kill(2) man page and saw that if pid is zero, the signal is sent to the current process; so we could have wrote ‘kill(0, SIGSTOP)’.  Unfortunately, what kill(2) *exactly* says is
+
+> If pid is zero:
+> sig is sent to all processes whose group ID is equal to the process group ID of the sender, and for which the process has permission; this is a variant of killpg(3).
+
+If your program is made by multiple process, you’d stop all of them!  This may be preferred, or it may not; I chosen to explicitly kill the current process (and only that!) for this very reason.
+
+## Wrapping up
+
+It’s fun to see how things works, especially when you are able to figure it up by yourself.  I was trying to handle C-z in telescope, a gemini client I’m writing, and it took me a while to understand how suspend the current process.  I searched a bit the internet but everything I found boiled down to “control-z, bg/fg or kill it with SIGTSTP”; which turns out was the correct solution, but wasn’t clear to me at first.  I tend to forget that I can send signals to myself.
+
+## Some links
+
+=> gemini://gemini.omarpolo.com/cgi/man/stty		stty(1) manpage
+=> gemini://gemini.omarpolo.com/cgi/man/2/kill		kill(2) manpage
+=> gemini://gemini.omarpolo.com/cgi/man/curs_inopts	curs_inopts(3) manpage — talks about cbreak, raw and other interesting stuff
+=> gemini://gemini.omarpolo.com/cgi/man/3/signal	signal(3) manpage
+
+=> //telescope.omarpolo.com				Telescope

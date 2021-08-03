@@ -1,0 +1,66 @@
+Early today, this hot Saturday morning, I tagged a new version of gmid.  As always, this release is dubbed after a song, this time it’s one of my favourites by Dream Theater: “Space-dye Vest”.  It has nothing to do with space other than the title, but it’s a really good song.  It’s also one of their saddest songs, you have been warned.
+
+This 1.7 brings in a lot of new stuff, improvements and bugfixes.  One of the most interesting things is, in my opinion, the initial FastCGI work.  I think FastCGI could work really well in a Gemini context, as it’s a easy way to have servers that acts like reverse proxies and forward the requests to backends application.  It’s better than a TLS-relay because it can forward information about client certificates to the application, something that’s impossible otherwise, and it’s lighter too!
+
+Another interesting feature is that it’s now possible to specify the ‘root’ directory per-location block, that along with the improved handling of ‘strip’ allows really flexible setups like ‘~user’ directories, for instance.  This feature in particular was inspired by a concern raised by cage on #gemini-it over at libera.chat, thanks!
+
+The new macro support is also pretty cool IMHO.  It allows to define variables in the configuration file or from the cli with the ‘-D’ flag to simplify the configuration file and cut some repetitions.  It’s known to be used in a systemd setup with the LoadCertificates option in order to start gmid with non-root privileges but still letting it read the keys.
+
+(To be honest, there’s nothing wrong with starting gmid as root, but please do use the ‘chroot’ and ‘user’ rules to drop priviledges and chroot into a safe sandbox.  Also, self-signed certs are cool!  But this is just my opinion.)
+
+The last thing I’d like to mention (the whole changelog is at the end of this entry) is the pidfile support.  The new (optional!) ‘-P pidfile’ flag makes gmid write its pid at the given location, that it’s also used as a lockfile to avoid spawning multiple instances by accident.  This was a feature request, and from what I can see it was already included in the Gentoo overlay GURU package.
+
+## Future plans
+
+Recently I’ve started a new secret project.  It’s yet another daemon, for a not-so-famous (but pretty) protocol.  While working on this, instead of starting from scratch I cannibalised a lot of code from the OpenBSD’ rad(8) daemon.  I chose it because it’s rad (sorry, I just had to make a stupid pun) and because it seems pretty simple, so I can easily swap out the code that implements the logic and write my own stuff.
+
+Oh my, I was impressed.  It’s well known that the OpenBSD project produces simple, solid code that’s secure by default and so on; but it’s not something you can fully understand if you don’t look at the sources.  Just by inheriting that code, I had for free a complete privsep framework, where every child process is re-exec’ed to gain a completely new and fresh address space, a solid imsg infrastructure to send messages around (also used to reload the configuration on-the-fly), the glorious parse.y, and a socket to control the daemon via a cli tool.  And did I mention that all the messages via imsg are completely 100% asynchronous?!
+
+So, for the next version I’d like to replicate some of this.  It’ll require some changes under the hood, so probably the next changelog won’t be as rich as this, but it’s worth.
+
+I’d also like to improve the log management.  To be honest, it was one of those things that I intended to do for this release, but failed to do so.  I have a local diff to allow logging to custom files, but I don’t like the implementation and so I dropped it; we’ll see for the next release.  Patches are always welcome :P
+
+
+## Changelog
+
+### New features
+
+* initial fastcgi support!  (it's still young!)
+* added user-defined macros, either via ‘-Dname=val’ or directly in the configuration file.
+* new ‘include’ keyword to load additional configuration files.
+* new ‘env’ rule to define environment vars for CGI scripts.
+* new ‘alias’ rule to define hostname aliases for a server.
+* allow ‘root’ to be specified per-location block.
+* pidfile support with the new ‘-P’ cli flag.
+* define ‘TLS_VERSION’, ‘TLS_CIPHER’ and ‘TLS_CIPHER_STRENGTH’ for CGI scripts.
+
+### Improvements
+
+* remove limits on the number of virtual hosts and location blocks that can be defined.
+* print the datetime when logging to stderr.
+* use ‘text/x-patch’ for ‘.patch’ and ‘.diff’ files.
+* sort the auto index alphabetically.
+* various improvements to the log management.
+* drop the dependency on lex.
+* added ‘--help’ as synonym of ‘-h’ and ‘-V’/‘--version‘ to print the version.
+* c-like handling of strings in the configuration file: when two or more strings are next to each-others, are automatically joined into a single string.  This is particularly useful with $-macros.
+
+### Bug fixes
+
+* correctly handle CGI scripts that replies with the maxium header length allowed.
+* fixed the static target.
+* fixed recursive mkdirs for configless mode (i.e. create ‘~/.local/share/gmid’)
+* logs sent to syslog now have proper priority (before every message ended up as LOG_CRIT).  Found by Anna “CyberTailor”, thanks!
+* ensure ‘%p’ (path) is always absolute in ‘block return’ rules.
+* fix automatic certificate generation, it caused problems on some adroid devices.  Found by Gnuserland, thanks!
+* document the ‘log’ rule.
+* the seccomp filter was reworked and now it's known to work properly on a vast range of architectures (to be more specific: all the architectures supported by alpine linux), see github issue #4.  Prompted and tested by @begss, thanks!
+* various improvements to the configure script, notified and fixed by Anna “CyberTailor”, thanks!
+* added a timeout to the regression tests.
+
+### Breaking changes
+
+* if duplicate rules are found in the configuration file, an error is now raised instead of silently using only the last value.
+* (sort of) ‘gg’ moved to ‘regress’ as it's only used in the regression suite.
+* (notice) the “mime "mime-type" "extension"” rule was deprecated and replaced by the new “map "mime-type" to-ext "extension"”.  The ‘mime’ rule will be removed in a future version because its syntax is incompatible with the new string auto-concat mechanism.
+

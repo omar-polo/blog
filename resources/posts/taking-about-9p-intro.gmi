@@ -1,0 +1,68 @@
+These days I’m hacking on 9P.  In case you don’t know, 9P is a protocol for a network file system that was developed as part of the plan9 operating system.
+
+Now, to make it clear, I’ve never — sigh! — used 9P nor plan9 before.  I’m just starting to explore the 9P protocol, hacking something together (for a secret project), and writing some notes here on my blog.
+
+If you find some errors please be kind and notify me.  The contacts are at the end of every entry in the Gemini version of this blog.
+
+The 9P protocol is pretty simple: the client sends requests (called T-messages) and the server replies (with R-messages).  Replies can be delayed or received out of order.  A transaction of some type is completed when the server replies with the matching R-message (or with an error).
+
+I’m going to use the same syntax used in the plan9 manpages to describe the packets.  Fields are written as name[n] where ‘name’ represents the name of the field and ‘n’ (which is either 1, 2, 4, 8 or 13) represents the number of byte.  An exception to this rule are strings and other variable-width fields: they are represented by a two-byte integer counter followed by the actual data.  Strings in particular are denoted as name[s] (where ‘s’ is a literal s character.)
+
+Integers are transmitted in little-endian format, and strings are encoded in UTF-8 without the NUL-terminator.  The NUL byte is illegal in strings transmitted over 9P and thus excluded by paths, user login names etc.
+
+Both the requests and the replies share a common structure, the header, which looks like this
+
+``` 9P header
+size[4] type[1] tag[2]
+```
+
+Size, the first field, is a 32 bit field that indicates the length of the message (including ‘size’ itself!).  Type is a one-byte integer that specifies the type of the requests and tag is an arbitrary client-chosen integer that uniquely represents this transaction.  The client cannot issue two or more ongoing transaction with the same tag.
+
+Following the header there is an optional body whose structure depends on the type of message.
+
+Clients can only send T-messages, and the server can only reply with a R-message.
+
+The available messages are:
+
+* Tversion/Rversion
+* Tauth/Rauth
+* Rerror (Terror does not exist)
+* Tflush/Rflush
+* Tattach/Rattach
+* Twalk/Rwalk
+* Topen/Ropen
+* Tcreate/Rcreate
+* Tread/Rread
+* Twrite/Rwrite
+* Tclunk/Rclunk
+* Tremove/Rremove
+* Tstat/Rstat
+* Twstat/Rwstat
+
+There are some extension (or “dialects” should I say) of 9P which adds (and slightly change) these messages, but at least for now I’m trying to stick to 9P2000 “vanilla”.
+
+An important role in 9P is played by “qid”s and “fid”s.  A fid is a 32bit integer chosen by the client that identifies a “current file” on the server.  They are similar, albeit different, to UNIX file descriptors.  Qids are the server idea of a file: they are a jumbo object of a whopping 13 bytes: the first one identifies the type (whether is a file, directory, and so on), a four byte integer unique among all files in the hierarchy called “path” and a four byte “version” field that should get incremented every time the file is modified.
+
+Fids are often present in T-messages and qids in R-messages.
+
+The first message that a client should issue after it has established a connection to a file server is Tversion to negotiate the version used and the maximum size of the packets.  The Tversion signature is
+
+```
+size[4] Tversion tag[2] msize[4] version[s]
+```
+
+(from now on I’ll omit the three header fields when describing the structure of a packet)
+
+The msize is the maximum size of a packet that the client is willing to accept, and the version is a string the identifies the protocol version used.  It MUST start with the “9P” characters.  The client can’t issue further requests until the server replies with a Rversion, which has the same structure.  The msize replied by the server has to be smaller or equal to the one proposed by the client.
+
+Then there is an optional authentication using Tauth.  I’m not interested in how “normal” authentication works in 9P in my project (for now at least), but the idea is that the server provides to the client a special “authentication file” that an unauthenticated client can read and write to.  This is used to implement a custom auth protocol which is external to 9P.
+
+At this point the client can “attach” a file tree using Tattach:
+
+```
+fid[4] afid[4] uname[s] aname[s]
+```
+
+If successful, fid will represent the file tree accessed by aname.  ‘afid’ is the authentication fid, which can be -1 (i.e. 0xFFFFFFFF) for the no-authentication case.  ‘uname’ is the user name.
+
+If successful, the client has access to a file tree and can start moving around (by means of Twalk) and messing with files (Topen, Tremove, …).  This is also all for the introduction: future entries will focus in particular about the other kinds of messages.

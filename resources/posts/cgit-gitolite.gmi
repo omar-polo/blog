@@ -1,0 +1,153 @@
+I've just finished to configure gitolite and cgit to manage some git repos of mine (and friends), so I'm posting here the setup before forgetting the details.
+
+The final result is a git server with both a web view, HTTP clone and ssh for you and your users.
+
+It requires more work than, say, gitea or gitlab, and has a few moving parts.  Nevertheless, it's a modular solution (you can replace cgit with gitweb for instance) and it does not have obnoxious web guis to manage things.  The whole gitolite config is itself a git repository, so you can use the tools you're familiar with (a bit of ssh, git and your preferred $EDITOR) to build and maintain your own git server.
+
+## gitolite
+
+Install gitolite, it's easy, just follow the installation guide.  I've done that on a new user called "git".  This will create two repos in ~git/repositories: gitolite-admin and testing.  With the default configuration testing will be read-write for all users (in the gitolite sense).
+
+=> https://gitolite.com/gitolite/quick_install#distro-package-install Gitolite install guide
+
+You should import your own ssh public key.  Try to clone the “gitolite-admin” repo with:
+
+> git clone git@your.own.host:gitolite-admin
+
+to test the setup and, eventually, add more users and repos.
+
+## cgit
+
+I'm using nginx plus fcgiwrap on a FreeBSD system, but other options are available.  (For instance, if you're using OpenBSD than you have httpd and slowcgi already in base.)
+
+For reference, my configuration file is /usr/local/etc/cgit-op.conf and contains:
+
+``` cgit configuration file
+css=/mine.css
+logo=/logo.png
+
+head-include=/usr/local/lib/cgit/theme/head.html
+
+enable-http-clone=1
+enable-index-links=1
+remove-suffix=1
+enable-commit-graph=1
+enable-log-filecount=1
+enable-git-config=1
+
+source-filter=/usr/local/lib/cgit/filters/syntax-high.py
+about-filter=/usr/local/lib/cgit/filters/about-formatting.sh
+
+virtual-root=/
+enable-index-links=1
+enable-index-owner=0
+snapshots=tar.gz tar.bz2
+root-title=Stuff
+root-desc=some git repos of mine
+local-time=1
+
+# path to the root about file
+#root-readme=/usr/local/lib/cgit/theme/about.html
+
+# search for these files in the root fo the default branch
+readme=:README.md
+readme=:readme.md
+readme=:README.mkd
+readme=:readme.mkd
+readme=:README.rst
+readme=:readme.rst
+readme=:README.html
+readme=:readme.html
+readme=:README.htm
+readme=:readme.htm
+readme=:README.txt
+readme=:readme.txt
+readme=:README
+readme=:readme
+readme=:INSTALL.md
+readme=:install.md
+readme=:INSTALL.mkd
+readme=:install.mkd
+readme=:INSTALL.rst
+readme=:install.rst
+readme=:INSTALL.html
+readme=:install.html
+readme=:INSTALL.htm
+readme=:install.htm
+readme=:INSTALL.txt
+readme=:install.txt
+readme=:INSTALL
+readme=:install
+
+scan-path=/home/git/repositories
+```
+
+The important bits of all of these are only:
+``` enable git configuration
+enable-git-config=1
+```
+
+and
+
+``` set the parameter “scan-path” to repositories inside the git user home.
+scan-path=/home/git/repositories
+```
+
+The first let us configure per-repo cgit options via the standard git config file, while the second lets cgit discovers the repos by searching in that path.
+
+If you're curious, I used ‘head-include’ to add some meta tags and modified the default CSS to render the pages *decently* on mobile screens.  More work is needed.
+
+### Note about permissions
+
+You are probably running cgit with the www user and gitolite with the git user, so you have a permission problem.  While you can do fancy stuff with mount_nullfs, ‘mount --bind’ and whatnot or by changing the default path for the repositories, I didn't want to.
+
+I'm still not sure if this is the best way to handle things, but I made fcgiwrap use the `git` user with
+
+```set fcgiwrap user to git
+fcgiwrap_user="git"
+```
+
+in `/etc/rc.conf` plus a manual `chown(8)` on the socket.  Now cgit and gitolite are run by the same user.  Problem solved.
+
+## hide some repositories!
+
+This was the basic setup to have cgit display the repositories managed by gitolite, as well as having both public HTTP and authenticated ssh clone.  Pretty neat.
+
+But, you have no way (still) to hide some repositories.  For instance, the ‘gitolite-admin’ repository is public readable (not writable).  It may be fine for you, but I wanted a way to have *private* repositories, while still having the repos managed by gitolite.
+
+If you set ‘enable-git-config’ in cgit configuration file, now you can control some cgit per-repo options via `~git/repositories/$REPO/config`.  You can create a section that looks like this:
+
+```conf
+[cgit]
+	ignore = 1
+```
+
+to make cgit ignore that repo.  Check the documentation of cgit for the list of parameters you can set.
+
+But it's tedious and needs manual work per-repo.  That's something that needs to be automatized.
+
+Fortunately, gitolite lets us set git configurations via the gitolite.conf file.  You first need to set ‘GIT_CONFIG_KEYS’ to ‘.*’` in ~git/.gitolite.rc.  (‘.*’ is the broader, probably ‘cgit.*’ is enough, haven't tested tho).
+
+Now, in your `gitolite.conf` you can
+
+```conf
+repo gitolite-admin
+    config cgit.ignore=1
+```
+
+and BOOM, it's hidden and unreachable via cgit (both via web and http clone).
+
+But (there are too many “but” in this section, hu?) we can do even better:
+
+```conf
+@hiddenrepos = gitolite-admin
+@hiddenrepos = private-stuff
+@hiddenrepos = next-gen-revolutionary-stuff
+
+repo @hiddenrepos
+    config cgit.ignore=1
+```
+
+to bulk-hide repositories.
+
+Neat.

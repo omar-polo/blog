@@ -1,0 +1,340 @@
+I just switched my mailserver from a setup with a single UNIX user to a slightly more complex one with virtual users.  I don’t know how other admins manages their virtual users, but in this entry I’m going to discuss the method I’m using.
+
+This is *not* a tutorial on how to install and configure OpenSMTPD or Dovecot or anything else, as I don’t feel like I’m the most qualified to do so.  Instead, if you’re looking on how to deploy your own mail server, I’m going to recommend the tutorial from Gilles Chehade:
+
+=> https://poolp.org/posts/2019-09-14/setting-up-a-mail-server-with-opensmtpd-dovecot-and-rspamd/index.html Setting up a mail server with OpenSMTPD, Dovecot and Rspamd
+
+In the past I’ve used a shared SQLite database to store users authentication data, but this time I wanted to manage the data differently.  I don’t need to handle hundreds of users, and every user needs to be manually added by me, so a database is overkill.
+
+A more text-centric approach requires five configuration files:
+* a passwd-like file
+* an aliases table
+* a domains table
+* an authentication table
+* a virtuals table
+
+The tables are needed to load data into OpenSMTPD, while for Dovecot a single ‘/etc/passwd’-like file is enough.
+
+Keeping the information in sync between these five files definitely not hard, but I’m particularly lazy, so I’ve wrote a simple AWK script to parse a custom ‘userdb’ file and populate all those files.  But before going into that, let’s see an excerpt from my OpenSMTPD configuration:
+
+```
+# these are the paths on a FreeBSD host, on OpenBSD they’re
+# just /etc/mail.
+table aliases file:/usr/local/etc/mail/aliases
+table domains file:/usr/local/etc/mail/domains
+table passwd file:/usr/local/etc/mail/passwd
+table virtuals file:/usr/local/etc/mail/virtuals
+
+# pki, filters and listen directives omitted
+
+action "remote_mail" lmtp "/var/run/dovecot/lmtp" rcpt-to virtual <virtuals>
+action "local_mail" lmtp "/var/run/dovecot/lmtp" rcpt-to alias <aliases>
+action "outbound" relay helo example.com
+
+match from any for domain <domains> action "remote_mail"
+match from local for local action "local_mail"
+match from any auth for any action "outbound"
+match for any action "outbound"
+```
+
+The four ‘match’ rules matches in order
+* incoming emails for the domains we’re serving
+* local emails from one UNIX user to another
+* outgoing emails from authenticated users
+* outgoing emails from local UNIX users (there’s an implicit ‘from local’, to turn your server into an open relay you need to be really, really explicit!)
+
+Two of the three actions deliver the mail over LMTP to Dovecot.  An important bit there that I was missing on my first try was the ‘rcpt-to’ keyword: as we’ll see in a moment, all the mail are handled by a local user, but we need to use the recipient email address instead of the local user in the LMTP session, so Dovecot can save the email in the correct maildir.
+
+### passwd
+
+Dovecot needs only a single file for the authentication.  One of the supported format, and the one I’m using, is a ‘passwd’-like format, like the following:
+
+```
+op@example.com:<hash>::::::
+```
+
+On the Dovecot site, things are a bit easier because there is no aliasing, resolving or expansions to do on the received emails.
+
+### alias table
+
+An alias table looks like this:
+
+```example of an alias table file
+root: op
+op: op@example.com
+```
+
+It maps *local* users to other local or remote users.  In the example above, mail for the UNIX root user are forwarded to the user op, that in turns redirects his mail to op@example.com.
+
+### domains table
+
+Holds all the domains we’re accepting mails from.  It can be specified in-line in the configuration file:
+
+```example of a domains table in smtpd.conf
+table domains { "example.com", "foo.bar.net", … }
+```
+
+or in a file with one domain name per line
+
+```example of a domains table as plain file
+example.com
+foo.bar.net
+```
+
+### Credentials table
+
+A credentials table file looks like this:
+
+```example of a credentials table
+user@doma.in		password-hash
+user2@example.com	password-hash
+```
+
+just a simple user ↔ hash mapping.  Hashes can be computed with the encrypt subcommand of smtpctl
+
+```example on how to hash a password
+$ smtpctl encrypt
+p4ssw0rd
+$2b$10$jpdOj8WPIMABsMs.LzFbiuSpgZ1TlGUj2ztBxEimoaQylQD/jhelS
+^D
+```
+
+NB: on OpenBSD-CURRENT (and as of a couple of releases already at least) the ‘smtpctl encrypt’ computes the BLF-CRYPT hash of the password, but for some reason on FreeBSD it uses SHA512-CRYPT.  Dovecot needs to be told the default hashing scheme in ‘conf.d/auth-passwdfile.conf.ext’.  Here’s mine
+
+``` example of auth-passwdfile.conf.ext file for Dovecot
+passdb {
+  driver = passwd-file
+  # adjust SHA512-CRYPT eventually!
+  args = scheme=SHA512-CRYPT username_format=%u /usr/local/etc/dovecot/users
+}
+
+userdb {
+  driver = passwd-file
+  args = username_format=%u /usr/local/etc/dovecot/users
+  override_fields = home=/var/vmail/%d/%n
+}
+```
+
+Refer to the Dovecot documentation:
+=> https://doc.dovecot.org/configuration_manual/authentication/password_schemes/ “Password Schemes” in the Dovecot documentation.
+
+### virtuals
+
+The virtual table is used to map address to other addresses (i.e. alias) or addresses to local users (to allow the delivery.)  It looks like this
+
+```example of a virtuals table
+postmaster@example.com: op@example.com
+aaa@example.com: op@example.com
+op@example.com: vmail
+otheruser@example.com: vmail
+```
+
+## Making it painless
+
+Since maintaining this whole bunch of files may not be the easiest thing ever.  To be a bit more declarative, I’ve come up with the following ‘userdb’ file.  It’s an invented syntax that gets parsed by a super-simple AWK script and generates all the other files.  Here’s an example:
+
+```example of syntax of userdb
+# local alias
+alias root op
+alias op op@example.com
+
+# per virtual-domain config
+example.com:
+	# Indentation is optional, but improves legibility.
+	# The following defines the user op@example.com;
+	# <hash> is the hash of the password computed
+	# with `smtpctl encrypt`
+	user op <hash>
+	# and define an arbitrary number of aliases
+	alias service1
+	alias other-alias
+
+	user otheruser <hash>
+
+	# aliases can be to virtual users on other hosts
+	alias abuse	someone@example2.com
+
+example2.com:
+	user someone <hash>
+	# …
+```
+
+The syntax is as simple as possible, to make the parsing easier.  It’s also open for additions: for instance, adding a ‘quota’ keyword to define custom quotas shouldn’t be too hard.
+
+=> //git.omarpolo.com/vuserctl/ All the code examples are available in a git repository.
+
+The AWK implementation that parses the file is also pretty simple:
+
+``` userctl.awk
+#!/usr/bin/env awk
+
+# expects action to be defined, like -v action=aliases
+
+/^[[:space:]]*$/	{ next }
+/^[[:space:]]*#/	{ next }
+
+/:$/ {
+	# drop the :
+	gsub(":", "", $1);
+	domain = $1;
+	domains[domainslen++] = domain;
+	next;
+}
+
+$1 == "user" {
+	user = sprintf("%s@%s", $2, domain);
+	users[user] = $3
+
+	# change “vmail” to match the local user that
+	# delivers the mail
+	aliases[user] = "vmail";
+	next;
+}
+
+$1 == "alias" {
+	if ($3 != "") {
+		target = $3;
+	} else {
+		target = user;
+	}
+
+	if (domain != "") {
+		alias = sprintf("%s@%s", $2, domain);
+	} else {
+		alias = $2;
+	}
+	aliases[alias] = target;
+}
+
+# output in the correct format
+END {
+	if (action == "aliases") {
+		for (alias in aliases) {
+			if (match(alias, "@"))
+				continue;
+			printf("%s: %s\n", alias, aliases[alias]);
+		}
+	} else if (action == "virtuals") {
+		for (alias in aliases) {
+			if (!match(alias, "@"))
+				continue;
+			printf("%s %s\n", alias, aliases[alias]);
+		}
+	} else if (action == "domains") {
+		for (domain in domains) {
+			printf("%s\n", domains[domain]);
+		}
+	} else if (action == "users") {
+		for (user in users) {
+			printf("%s %s\n", user, users[user]);
+		}
+	} else if (action == "users.passwd") {
+		for (user in users) {
+			# user@doma.in:hash::::::
+			# user@doma.in:hash::::::userdb_quota_rule=*:storage=1G
+			printf("%s:%s::::::\n", user, users[user]);
+		}
+	} else if (action == "users.mdirs") {
+		for (user in users) {
+			split(user, m, "@");
+			# adjust the maildir path
+			printf("/var/vmail/%s/%s/Maildir\n", m[2], m[1]);
+		}
+	} else {
+		print "unknown action!\n" > "/dev/stderr"
+		exit 1
+	}
+}
+```
+
+The AWK script needs the variable ‘action’ to be defined to dump the correct information.  It can be provided with the ‘-v’ flag, but for extra-comfort I wrote also the following wrapper script:
+
+```userctl the wrapper script
+#!/bin/sh
+
+if [ ! -f "userctl.awk" ]; then
+	echo "Can't find userctl.awk!" >&2
+	exit 1
+fi
+
+if [ ! -f "userdb" ]; then
+	echo "Can't find userdb!" >&2
+	exit 1
+fi
+
+# run <action>
+run()
+{
+	awk -f userctl.awk -v action="$1" userdb
+}
+
+case "$1" in
+	aliases)	run "aliases"  ;;
+	virtuals)	run "virtuals" ;;
+	domains)	run "domains"  ;;
+	users)		run "users"    ;;
+	users.passwd)	run "users.passwd" ;;
+	users.mdirs)	run "users.mdirs"  ;;
+	help)
+		echo "USAGE: $0 <action>"
+		echo "where action is one of"
+		echo " - aliases"
+		echo " - virtuals"
+		echo " - domains"
+		echo " - users"
+		echo " - users.passwd"
+		echo " - users.mdirs"
+		;;
+	*)
+		echo "Unknown action $1" >&2
+		exit 1
+		;;
+esac
+```
+
+Now that the framework is in place, the only missing piece is to use it to generate the files.  I wrote yet another script to (re-)generate the tables and to create the maildir when a user is added.
+
+```sync-userdb
+#!/bin/sh
+
+set -e
+
+# On OpenBSD these are only /etc/mail/…
+./userctl aliases  > /usr/local/etc/mail/aliases
+./userctl virtuals > /usr/local/etc/mail/virtuals
+./userctl domains  > /usr/local/etc/mail/domains
+./userctl users    > /usr/local/etc/mail/passwd
+
+./userctl users.passwd > /usr/local/etc/dovecot/users
+
+m()
+{
+	if [ ! -d "$1" ]; then
+		mkdir "$1"
+		chown vmail:vmail "$1"
+	fi
+}
+
+# ensure the maildirs exists
+for dir in $(./userctl users.mdirs); do
+	homedir=$(dirname "$dir")
+	domdir=$(dirname "$homedir")
+
+	m "$domdir"
+	m "$homedir"
+	m "$dir"
+done
+
+# eventually add something like
+#	service dovecot restart
+#	service smtpd restart
+# for FreeBSD or
+#	rcctl restart dovecot smtpd
+# for OpenBSD.
+```
+
+## Conclusion
+
+I don’t have a proper conclusion for this entry.  Tools like this are usually almost always “work in progress”, as they are changed/extended over the time depending on what I need to do.  One thing for sure, designing simple database files and managing them with AWK is lots of fun.
+
+As always, if you have comment, tips or noticed something that’s missing or not explained properly, don’t refrain from notifying me, so I can update this entry accordingly.

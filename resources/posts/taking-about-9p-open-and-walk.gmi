@@ -1,0 +1,69 @@
+=> taking-about-9p-intro.gmi	Taking ’bout 9P: intro
+
+The Topen request at first looks weird.  Here’s its signature
+
+```bytewise description of a Topen request
+size[4] Topen tag[2] fid[4] mode[1]
+```
+
+It’s strange, isn’t it?  For comparison, here’s the C signature for the open(2) system call:
+
+```C prototype of the open(2) system call
+int	open(const char *path, int flags, ...);
+```
+
+Where is the path in the Topen call?
+
+The description for the Topen request says:
+
+> The open request asks the file server to check permissions and prepare a fid for I/O with subsequent read and write messages.
+
+Which implies that to write or read a fid you must open… an existing fid?
+
+This morning (well, actually some days ago since this entry got published later) cage explained the mystery to me: Twalk.
+
+When I first skimmed through the 9P documentation I thought that the walk request was basically a chdir(2), which it is, but also is not!
+
+The Twalk requests allows one to navigate from a fid (usually representing the starting directory) through some path components and reach a destination file that will be associated with a new fid.
+
+So, if I connect to a 9P file server and write something to ~/notes.txt (supposing that my home is on that file server) the 9P session could look like this:
+
+```
+# establish a connection and negotiate the version
+→ Tversion <msize> 9P2000
+← Rversion <msize> 9P2000
+
+# mount the home
+→ Tattach 1 "op" "/home/op"
+← Rattach <qid>
+
+# walk from fid #1 (/home/op) to “notes.txt” (a file!)
+# and associate to it fid #2
+→ Twalk 1 2 "notes.txt"
+← Rwalk <qid...>
+
+# prepare fid 2 (/home/op/notes.txt) for
+# reading and writing
+→ Topen 2 OWRITE|OREAD
+← Ropen <qid> <iounit>
+
+# read/write fid 2…
+
+# close the fid 2 since it’s no longer used
+→ Tclunk 2
+← Rclunk
+```
+
+(note that as always this is entirely my speculation from reading the documentation.  I never used — sigh! — plan9 nor 9p)
+
+So it actually makes sense for Topen to accept a fid and not a path, and Twalk is a general purpose request that can be used to implement various system calls (dup2, chdir, open…)
+
+Then I started to think why it was like this.  I mean, everything is finally starting to make sense in my head, but why the 9P people decided to implement Topen and Twalk this way?
+
+Well, I can’t say for sure, but I’m starting to noticing that a fid is something more than a UNIX file descriptor: it’s both a file descriptor AND a path.
+
+ *my mind blows*
+
+Which is actually a pretty clever solution.  The client can get new fids by mean of Twalk, which then can be passed to Tremove (for removal), or Tstat/Twstat, or being opened and then written/closed.  It’s also probably more efficient than passing string around on every request.
+
+This has also some drawbacks probably.  For one, it’s not clear at glance if a fid was prepared for I/O or not.  On UNIX there is a clear distinction between a file descriptor (a number that references an object in the kernel) and a path (a mere sequence of bytes NUL-terminated.)  But since this is an underlying mechanism, it seems pretty clever.  It shouldn’t be too much difficult to map the usual UNIX syscalls on top of 9p.

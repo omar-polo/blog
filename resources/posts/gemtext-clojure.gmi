@@ -1,0 +1,44 @@
+Some time ago I wrote a text/gemini parser for Clojure.  More than a real parser was a hack, an extremely verbose one, just to play with this transducer thing.
+
+Well, I got tired of that and rewrote it as a standalone library that is now available on clojars.
+
+=> https://clojars.org/com.omarpolo/gemtext/ com.omarpolo/gemtext on Clojars.
+
+There’s still a transducer at the heart of the library, but it’s a more reasonable one this time.  It allows to build up pipelines where parsing text/gemini is only one of the steps, or to parse streaming text/gemini, which is a cool thing (even tho not widespread.)
+
+Since this is a library and not a hack inside this blog codebase, ‘parse’ is now a multimethod (Clojure own generic functions if you came from CL-land) with default implementations for strings, sequence of strings and java Reader.
+
+Since the parser is built using nothing more than the clojure stdlib, I thought “why not” and called the file ‘core.cljc’, so it’s available also for ClojureScript.  (The beforementioned multimethod is available also there, with a default implementation for vectors, lists and strings.)
+
+The library emits “almost usual” hiccup:
+
+```clojure
+user=> (gemtext/parse "some\nlines\nof\ntext")
+[[:text "some"] [:text "lines"] [:text "of"] [:text "text"]]
+
+user=> (gemtext/parse (repeat 3 "* test"))
+[[:item "test"] [:item "test"] [:item "test"]]
+```
+
+and is able to turn ’em back to strings:
+
+```clojure
+user=> (gemtext/unparse [[:link "/foo" "A link"]])
+"=> /foo A link\n"
+```
+
+but also to return “HTML” hiccup
+
+```clojure
+user=> (gemtext/to-hiccup [[:header-1 "text/gemini"] [:text "..."]])
+[[:h1 "text/gemini"] [:p "..."]]
+```
+
+so you can use it with other Clojure/script libraries, and to convert text/gemini to HTML.
+
+It was fun: I use clojure a lot, but never actually wrote a library, so this was a chance to play with different things.  First of, the (small) documentation is available also on cljdoc, and second I played with ‘seancorfield/readme’, a Clojure library that transforms your README to a REPL session!
+
+A final note: the design is done, but in the following weeks I may slighly change something here and there (for instance, only now I realize that you can parse text/gemini on the fly, but not convert it to HTML one bit at a time, i.e. “convert text/gemini to html streamingly” (?) which can be useful, or unparse into anything other than a string.)
+
+
+(P.S. I took the chance to also to restyle the capsule.  I removed the ASCII banners and followed the subscription spec, yay!)

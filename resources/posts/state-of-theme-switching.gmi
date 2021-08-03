@@ -1,0 +1,54 @@
+Two years ago I decided to switch to a light-theme and I was really happy with that.  Maybe it’s just me, but black text on white background is perfectly readable, and it didn’t give me problems or eye tiredness, not even when it’s 1 am and I’m still hacking together something.
+
+Fast forward two years, and I’m still happily using only light themes.  Sometimes, I get some comments like “you’ve burnt my eyes” when I share a screenshot with someone for the first time, but that’s all.
+
+However, this summer I’ve started to (temporary) switch to a dark theme on some occasions (it’s really hot, even at night; I need keep the windows open to catch a brief breeze and not being eaten alive by mosquitoes) and I’m particularly disappointed with the current state of theme switching and dark mode in general.
+
+My goal would be a single *painless* action to switch my entire environment from a light to a dark theme and vice versa.  How hard can it be?
+
+## The current state of the affairs
+
+These are the applications I have usually open
+
+* lots of Emacs frames
+* lots of xterm windows
+* a firefox window
+* a gajim window (GTK XMPP client)
+
+all running on cwm, my favourite window manager.
+
+Switching the background image to something more dark-y (yes, my current wallpaper is mostly white too) is painless.  Open an xterm, ‘C-r feh’ and ksh’ i-search leads me to the correct command.  Cool.
+
+Emacs is the easiest to tame.  M-x disable-theme followed by a M-x load-theme and you’re set.  I could even automatize this and bind a key.
+
+xterm is sort of okay-ish to tame.  I have a .Xdefaults with the colors; yesterday I’ve extracted my theme to .Xdefaults-light and selected a random dark theme in .Xdefaults-dark.  In .Xdefaults I’ve added
+
+```excerpt of my .Xdefaults
+#include ".Xdefaults-light"
+! #include ".Xdefaults-dark"
+```
+
+and when I want to switch theme I can simply switch the comments.  Yes, I have to close and re-open all my xterms, but it’s not a real issue.  All my terminal windows are usually volatile: if I need to run something that takes more than a couple of seconds, I usually run it in a tmux session, so no problem with closing and re-opening xterms, really.
+
+Now the difficult part: firefox and other GTK programs.
+
+Firefox is extremely hard to tame in this regard, and even really buggy.  I’m using a custom ACME-y light theme built with the “firefox colors” extension, which overrides the current theme at startup.  Go wonders.  Switching theme is clunky.  On firefox 90 I have to go “hamburger menu” → “more tools” → “customize toolbar” and then switch the theme in the bar at the bottom.  But this is only one part: then you have to go to about:config and set ui.systemUsesDarkTheme to 1 to set the theme preference for websites.  I’m honestly surprised nobody wrote an extension to automatize this.  I suspect I can automatize all of this by changing some files in ~/.mozilla/firefox, but…
+
+And then there’s the web.  (WARNING: rant ahead)
+
+Seriously, it’s that difficult to build a website that adapts to the prefers-color-scheme media query?  I didn’t realized, given that all my sites (well, except my cgit instance) adapts to the user preferred theme, without a line of javascript involved.  Out of all the website I tried yesterday night (admittedly a short number) only duckduckgo was adapting to my preference.  Props to them.
+
+The instance of pleroma I’m using sometimes to waste time in the fediverse has a theme switcher icon.  Meh.  But at least is always visible in the navbar at the top.  Simple 0-css-or-so websites have of course this bright white background.  I love white background, but when you’re in a dark-themed environment switching to a bright page is painful.
+
+I guess that this mess is due to allowing page authors to decide how pages are rendered on the users’ end.  One more reason to ditch the web.
+
+(end of rant)
+
+My solution to the problem is to use firefox even less.  The duckling-proxy does a *tolerable* job when thrown at a wikipedia page, and other simple pages are OK-ish to read.  Sure, a terminal web browser like w3m are best suited for this, but I like the experience of never having to leave Telescope.
+
+GTK applications (or gajim, since it’s the only one I routinely use) are also meh, but tame-able.  I have a solarized dark theme (which I personally hate, but I’m too lazy to find something else) installed and I can switch to that with lxappearance.  Then restart gajim.
+
+
+## Wrapping up
+
+I wrote this rant^W entry in a hurry, so I hope it makes sense.  What I’m gonna do from now on?  I’ll try to automatize some manual steps: for instance, switching theme on Emacs could also change the wallpaper and patch the .Xdefaults.  For firefox and other GTK applications I guess manual intervention is still needed, or maybe I’ll be able to ditch them, who knows?

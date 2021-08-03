@@ -1,0 +1,52 @@
+Last week I spent a couple of days at my relative house.  The only thing I took with me was a raspberry, plugged to the TV.
+
+The raspberry was running void linux, with only a small selection of software installed on it (Emacs, git, a C toolchain and nothing more, neither X11), and it was refreshing!  Most of the time the system was offline so I could focus on writing code, with only some occasional trips to man.openbsd.org with w3m to read some decent manpages.
+
+(w3m is quite a fine browser, maybe I’ll try to create something akin to it for Gemini.)
+
+The thing is, I am one of those strange people who doesn’t like dark colorschemes.  “Black print on white paper, as God and Gutenberg intended.”  Unfortunately the linux ttys are white text on a black background.  Let’s fix that!
+
+I found (and forgot the link) that linux allows one to customize the colors via ANSI escape codes and also set the default foreground and background.
+
+The “template” for these codes are:
+
+```sh
+\033 ] P <index> <html-hex-color>
+```
+
+(spaces only for readability)
+
+where ‘\033’ is the escape character, index is a one hex digit (0-F) and ‘html-hex-color’ is the familiar “HTML-style” six hexadecimal digit color.
+
+I’m using the following colors, but you can customize them to match your preferred scheme:
+
+```sh
+printf "\033]P0000000" #black
+printf "\033]P1803232" #darkred
+printf "\033]P25b762f" #darkgreen
+printf "\033]P3aa9943" #brown
+printf "\033]P4324c80" #darkblue
+printf "\033]P5706c9a" #darkmagenta
+printf "\033]P692b19e" #darkcyan
+printf "\033]P7ffffff" #lightgrey
+printf "\033]P8222222" #darkgrey
+printf "\033]P9982b2b" #red
+printf "\033]PA89b83f" #green
+printf "\033]PBefef60" #yellow
+printf "\033]PC2b4f98" #blue
+printf "\033]PD826ab1" #magenta
+printf "\033]PEa1cdcd" #cyan
+printf "\033]PFdedede" #white
+```
+
+Then, it’s possible to change the foreground and background as usual, but there’s an extra escape code to “persist” the combination:
+
+```sh
+# set the default background color (47, aka white) and the default
+# foreground color (30, aka black), then store it (aka [8])
+printf '\033[47;1;30m\033[8]'
+```
+
+Here’s the outcome:
+
+=> /img/linux-bright-colorscheme.jpg	Bright tty, screenshot (282K)
