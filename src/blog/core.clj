@@ -82,7 +82,9 @@
 (defn post-pages [{:keys [proto]}]
   (let [tags (keys @per-tag)
         ext  (if (= proto :gemini) ".gmi" ".html")
-        ffn  (if (= proto :gemini) gemini-post identity)]
+        ffn  (if (= proto :gemini) gemini-post identity)
+        ffn' #(when (ffn %)
+                (not (:draft? %)))]
     (map-indexed (fn [i posts]
                    {:filename (if (= i 0)
                                 (str "index" ext)
@@ -92,7 +94,7 @@
                     :posts posts
                     :has-next true
                     :has-prev true})
-                 (partition-all 6 (filter ffn @posts)))))
+                 (partition-all 6 (filter ffn' @posts)))))
 
 (defn fix-next-last
   "Fix the :has-prev/:has-next for the post pages.  This assumes
@@ -171,6 +173,8 @@ Disallow: /cgi/man/
   []
   (copy-dir "img" "http")
   (copy-dir "img" "gemini")
+  (copy-dir "dots" "http")
+  (copy-dir "dots" "gemini")
   (copy-file "resources/favicon.ico" "resources/out/http/favicon.ico")
   (copy-file "resources/css/style.css" "resources/out/http/css/style.css"))
 
@@ -261,6 +265,14 @@ Disallow: /cgi/man/
   (stop-jetty)
 
   (do
+    (deploy)
+    (local-deploy))
+
+  (do
+    (load-posts!)
+    (load-pages!)
+    ;; (clean)
+    (build)
     (deploy)
     (local-deploy))
 )
