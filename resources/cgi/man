@@ -1,16 +1,103 @@
-#!/usr/bin/env rc
+#!/usr/bin/env perl
 
-if (~ $QUERY_STRING '') {
-	echo '10 manpage:'
-	exit 0
+use strict;
+use warnings;
+use v5.10;
+
+use String::ShellQuote qw( shell_quote );
+use Any::URI::Escape qw( uri_escape );
+
+my $path = $ENV{'PATH_INFO'};
+my $query = $ENV{'QUERY_STRING'};
+my $script_path = $ENV{'SCRIPT_NAME'};
+
+sub reply {
+	my ($code, $meta) = @_;
+	print "$code $meta\r\n";
+	if ($code != 20) {
+		exit(0);
+	}
 }
 
-query=`{echo $QUERY_STRING | sed 's/%20/ /g'}
+sub banner {
+	say '# man';
+	say '';
+}
 
-echo '20 text/plain;charset=utf-8'
-echo '# OpenBSD 6.8'
-echo
-echo % man $query
-echo
-if ( ! man -Tutf8 -- $query | col -b | sed '$d' )
-	echo man: No entry for $"query in the manual.
+sub do_search {
+	my ($query) = @_;
+	reply(20, 'text/gemini');
+	banner;
+	say "Search results for: $query";
+
+	my $some = 0;
+	open(my $h, "-|", ("apropos", "-w", $query));
+	foreach (<$h>) {
+		chomp;
+		s,^.*/,,;
+		my ($page, $section) = split /\./;
+		my $esc = uri_escape($page);
+		say "=> $script_path/$section/$esc $page($section)";
+
+		$some = 1;
+	}
+	close($h);
+
+	if (!$some) {
+		say "Nothing.";
+	}
+}
+
+sub man_cmd {
+	my ($a, $b) = @_;
+	if (!$b) {
+		return shell_quote($a);
+	}
+	return shell_quote($a) . " " . shell_quote($b);
+}
+
+sub view_man {
+	my $args = @_;
+	reply(20, 'text/plain');
+	say "% uname -psr";
+	say "OpenBSD 6.8 amd64";
+	say "% man ", join(' ', @_);
+
+	my $pid;
+	if (!defined($pid = fork())) {
+		die();
+	} elsif ($pid == 0) {
+		exec("man -Tutf8 -- " . man_cmd(@_) .
+		     " | col -b | sed '\$d'");
+	}
+	waitpid($pid, 0);
+}
+
+my $home = !$path || $path eq '/';
+
+if ($home && $query) {
+	do_search($query);
+} elsif ($home) {
+	reply(20, 'text/gemini');
+	banner;
+	say "Welcome to the manual!";
+	say "";
+	say "This service allows you to lookup a manual page is several ways:";
+	say "* by name, appending /<name> to the current URL";
+	say "* by name and section, appending /<section>/<name> to the current URL";
+	say "* by searching it, appending ?<query> to the current URL";
+	say "";
+	say "=> $script_path/search Or just click here to search";
+} elsif ($path =~ m[^/?search/?]) {
+	if (!$query) {
+		reply(10, 'manpage:');
+	}
+	do_search($query);
+} elsif ($path =~ m{^/([1-9]p?)/([-\w:]+)/?$}) {
+	view_man($1, $2);
+} elsif ($path =~ m[^/([\w:]+)/?$]) {
+	view_man($1);
+} else {
+	reply(51, 'not found');
+}
+
