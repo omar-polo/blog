@@ -20,6 +20,7 @@
       (link-item {:url "/", :text "Home"})
       (link-item {:url "/tags.html", :text "All Tags"})
       (link-item {:url "/pages/projects.html", :text "Projects"})
+      #_(link-item {:url "/dots", :text "dotfiles"})
       (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"
                   :title "This website in the gemini space."})]]
     (when-not skip-banner?
@@ -51,7 +52,7 @@
      [:img {:src "https://goatcounter.omarpolo.com/count?p=/test-img"}]]
     [:script "
 ;(function () {
-  if (window.location.host !== 'omarpolo.com')
+  if (window.location.host !== 'www.omarpolo.com')
     window.goatcounter = {no_onload: true}
 })();"]
     [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
