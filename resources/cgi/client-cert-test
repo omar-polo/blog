@@ -1,0 +1,13 @@
+#!/usr/bin/env rc
+
+if (~ $#AUTH_TYPE 0) {
+	echo '60 Please provide a (throwaway) certificate'
+	exit 0
+}
+
+echo '20 text/gemini'
+echo
+echo 'AUTH_TYPE:         ' $AUTH_TYPE
+echo 'REMOTE_USER:       ' $REMOTE_USER
+echo 'TLS_CLIENT_ISSUER: ' $TLS_CLIENT_ISSUER
+echo 'TLS_CLIENT_HASH:   ' $TLS_CLIENT_HASH
