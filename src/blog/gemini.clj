@@ -21,10 +21,9 @@
     [:text ""]
     [:text ""]
     [:text ""]
-    [:text "-- text: CC-BY-SA-4.0; code: MIT (unless specified otherwise)"]
-    [:text "For comments, write at < blog at omarpolo dot com >"]
-    [:text "Capsule proudly assembled with Clojure"]
-    [:link "https://git.omarpolo.com/blog/" "sources"])))
+    [:text "-- text: CC-BY-SA-4.0; code: public domain unless specified otherwise"]
+    [:text "For comments, write at < blog at omarpolo dot com > or @yumh@pleroma.libretux.com in the fediverse."]
+    [:link "//git.omarpolo.com/blog/" "Capsule proudly assembled with Clojure"])))
 
 (defn with-default-template [_ & body]
   (with-page {}
@@ -47,13 +46,13 @@
    (if full?
      [:text ""]
      [:quote short])
-   (when full?
-     [:text (time/fmt-iso8601 date)])
    (when music
      [:text (str "Written while listening to “" (:title music) "”"
                       (when-let [by (:by music)]
                         (str " by " by))
                       ".")])
+   (when full?
+     [:text (str "Published: " (time/fmt-iso8601 date))])
    [:text "Tagged with:"]
    (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
         (sort tags))
@@ -67,14 +66,9 @@
 (defn home-page [{:keys [posts has-next has-prev nth]}]
   (with-default-template
     [:text ""]
-    [:text "Welcome to my gemlog!  Sometimes I even remember that I have a blog and post something.  My main interests are computer science, operating systems (BSDs in particular), programming languages (especially C, Go, LISP in its various incarnations).  I also have an Italian capsule where I write about more \"casual\" stuff:"]
+    [:text "Welcome to my gemlog!  Sometimes I remember that I have a blog and post something here.  My main interests are computer science, operating systems (BSDs in particular), programming languages (especially C, Go, LISP in its various incarnations).  I also have an Italian capsule where I write about more casual stuff:"]
     [:link "gemini://it.omarpolo.com" "l'angolo di yumh"]
     [:text ""]
-    ;;[:text "Did I mention that I like to write code?  Some Gemini-related projects I develop:"]
-    ;;[:link "/pages/gmid.gmi" "gmid: a fast, small, and secure Gemini server"]
-    ;;[:link "/pages/telescope.gmi" "telescope: yet another ncurses Gemini browser"]
-    ;;[:link "/pages/libphos.gmi" "libphos: a library to develop Gemini servers and clients"]
-    ;;[:text ""]
     [:text "Some Gemini services on this capsule:"]
     [:link "/cgi/man"    "Look up a manpage"]
     [:link "/cgi/gempkg" "Browse the OpenBSD ports tree"]
