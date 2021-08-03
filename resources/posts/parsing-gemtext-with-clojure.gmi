@@ -1,3 +1,8 @@
+EDIT April 2021: I have revisited this parser and published it as a library.  The version presented here is not only overly-complex, but also overly-verbose.
+
+=> /post/gemtext-clojure.gmi Parsing text/gemini with Clojure revisited
+
+
 I've written various parsers in the past.  From simplistic stuff in Korn shell, to hand written recursive descendant parsers in Go and or C, to yacc-based parsers in C.  I even played with Alex and Happy in Haskell, but that was ages ago and I don't recall anything.
 
 One thing that I never tried was to write a parser in Clojure.  Until now.
