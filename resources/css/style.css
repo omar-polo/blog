@@ -253,7 +253,6 @@ ol {
 
 code {
   color: #971174;
-  font-family: monospace;
 }
 
 pre {
@@ -266,10 +265,11 @@ pre {
   border-radius: 3px;
   line-height: 1.4;
   background-color: #fdf6e3;
+  color: #333;
 }
 
-pre code {
-  color: #333;
+pre, code {
+  font-family: monospace;
 }
 
 em {
@@ -376,7 +376,7 @@ footer p {
     background-color: #2f2e2d;
   }
 
-  pre code {
+  pre {
     color: #ffffea;
   }
 }
