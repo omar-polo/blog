@@ -2,8 +2,12 @@
   :slug  "projects"}
  {:title "star-platinum - take control of your applications, one key at the time"
   :slug  "star-platinum"}
- {:title "gmid - dead simple zero configuration gemini server"
+ {:title "gmid - fast, small and secure Gemini server"
   :slug  "gmid"}
+ {:title "telescope - yet another ncurses Gemini client"
+  :slug  "telescope"}
+ {:title "libphos - build asynchronous Gemini clients & servers"
+  :slug  "libphos"}
  {:title "vc-got: Emacs VC backend for GoT"
   :slug  "vc-got"}
  {:title "crest - see your rest endpoints"
