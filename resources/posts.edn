@@ -6,7 +6,7 @@
   :gemtext? true
   :music    {:title "New Millennium"
              :by    "Dream Theater"}}
- {:title    "Taking ’bout 9P: open and walk"
+ {:title    "Talking ’bout 9P: open and walk"
   :short    "The mindblowing Twalk"
   :slug     "taking-about-9p-open-and-walk"
   :date     "2021/08/01"
@@ -14,7 +14,7 @@
   :gemtext? true
   :music    {:title "The Riddler"
              :by    "Nightwish"}}
- {:title    "Taking ’bout 9P: intro"
+ {:title    "Talking ’bout 9P: intro"
   :short    "Getting to know 9P"
   :slug     "taking-about-9p-intro"
   :date     "2021/07/31"
