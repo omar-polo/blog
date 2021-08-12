@@ -1,0 +1,247 @@
+As part of the regression suite for a project I’m working on, I designed a simple scripting language (which is not even Turing-complete by the way) to create specific situations and test how the program respond.  I’ve almost finished the interpreter for it, so it’s the time to start writing tests.  How do you edit a file if you don’t have a proper major mode available?  You write one!
+
+A major mode is a lisp program that manage how the user interacts with the content of a buffer.  (Friendly remainder that a buffer may or may not be an actual file; things like dired or elpher are major modes after all, but they’re not the kind of modes I’m interested in now.)
+
+Major modes for text files usually do at least three things:
+* font-lock (i.e. syntax highlighting)
+* setup the syntax-table
+* manage indentation (the hardest part)
+and probably more, like providing useful keybindings and interactions with other packages.
+
+I’ve never had to deal with the fontification or syntax tables, nor realised how difficult the indentation can be, so it’s been lots of fun.
+
+The difficulty of writing a major mode seems to be at least proportional to the “complexness” of the target language.  In my case, the grammar of the language is dead-simple and so the major mode is simple too.  cc-mode on the other hand is probably at the other side of the spectrum (well, after all it manages C, C++, Java, AWK and more…)
+
+Before describing the elisp implementation, here’s a look at the custom DLS, “nps”:
+
+```
+include "lib.nps"
+
+# consts comes in two flavors
+const (
+	one = 1
+	two = 2
+)
+const foo = "hello there"
+
+# procedures works as expected, … is for the rest argument
+proc message(type, ...) {
+	send(type:u8, ...) # type casts
+}
+
+# it’s a DSL for regression tests after all
+testing "cooking skills" {
+	message(Make, "me", "a", "sandwitch")
+	m = recv()
+
+	# asserts comes in two flavors too
+	assert (
+		m.type == What
+		m.content == "Make it yourself."
+	)
+	assert m.id = 5
+}
+```
+
+Now let’s jump in to the mode implementation.
+
+The elisp file starts with the usual header.  I’m enabling the lexical-binding even if it’s the default from emacs 27
+
+```elisp header
+;;; nps-mode.el --- major mode for nps  -*- lexical-binding: t; -*-
+```
+
+I’ll also make use of the rx library to write regexps, so
+```
+(eval-when-compile
+  (require 'rx))
+```
+
+## fontification
+
+i.e. syntax highlighting.  There are probably different ways of doing this, but I’ll stick with the simplest one: a bunch of regexps.
+
+```defining the font lock regexps
+(defconst nps--font-lock-defaults
+  (let ((keywords '("assert" "const" "include" "proc" "testing"))
+        (types '("str" "u8" "u16" "u32")))
+    `(((,(rx-to-string `(: (or ,@keywords))) 0 font-lock-keyword-face)
+       ("\\([[:word:]]+\\)\s*(" 1 font-lock-function-name-face)
+       (,(rx-to-string `(: (or ,@types))) 0 font-lock-type-face)))))
+```
+
+Yes, I got the number of parenthesis wrong (multiple times) at first.
+
+This value will be later set to the buffer-local font-lock-defaults variable.  I’ve not yet wrapped my head around the different levels mentioned in the documentation, but the code seems to work.  We’re using rx to build a regexp that matches the keywords and using the face ‘font-lock-keyword-face’ for the matches.  The zero is there because the regexp doesn’t have any sub-groups.
+
+The second entry is slightly more complex and interesting.  It matches a symbol followed by an open paren and applies the face ‘font-lock-function-name-face’ to it.  The regexp has a sub-group (the \\( and \\) bit) that matches only the symbol, and the number 1 tells font-lock to highlight only the first match and not the whole regexp.
+
+The third one is like the first, it highlights the “types”.
+
+## syntax-table
+
+This is pure black magic, I can assure you.  Nah, just kidding.  But it looks like.
+
+It’s a very important piece of the major-mode.  Various lisps function will inspect the current syntax-table to query over what kind of text the point is.  It also interacts with the font-lock and various other parts of Emacs.
+
+This is also the part I’m less confident with.  Some major-modes I’ve seen add explicit entries for the braces and the quotes, other doesn’t.  I’ve decided to be explicit and list all the characters I’m using, just to be sure.
+
+The idea is to specify for each character (or range of characters) some properties.  These properties are expressed in a very terse notation using a string.  To add entries to the syntax table you need to use ‘modify-syntax-entry’: it takes the character (or range), the string description of the properties and the syntax table.
+
+The format of the specification is better explained in the elisp manual, but the gist is that is a sequence of character with a special interpretation.  The first character identifies the “class” (punctuation, word component, comment delimeter, parenthesis, …), the second if not a space specifies the matching character, and then there are further fields that I won’t use.
+
+Just to provide an example before showing the code, in a programming language the syntax entry for the character ‘(’ probably looks like "()":
+* it’s a parethesis, as the first character is an open paren and
+* the ‘)’ character is its matching character.
+The syntax table for ‘)’ instead will look like "((" because
+* it’s a parenthesis
+* its matching character is ‘(’
+
+So, here’s the syntax table for nps in its all glory:
+
+```
+(defvar nps-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?\{ "(}" st)
+    (modify-syntax-entry ?\} "){" st)
+    (modify-syntax-entry ?\( "()" st)
+
+    ;; - and _ are word constituents
+    (modify-syntax-entry ?_ "w" st)
+    (modify-syntax-entry ?- "w" st)
+
+    ;; both single and double quotes makes strings
+    (modify-syntax-entry ?\" "\"" st)
+    (modify-syntax-entry ?' "'" st)
+
+    ;; add comments. lua-mode does something similar, so it shouldn't
+    ;; bee *too* wrong.
+    (modify-syntax-entry ?# "<" st)
+    (modify-syntax-entry ?\n ">" st)
+
+    ;; '==' as punctuation
+    (modify-syntax-entry ?= ".")
+    st))
+```
+
+## indentation
+
+Indentation at first doesn’t seem like a difficult thing.  After all, when we’re staring at code we don’t have the slightest doubt on how a certain line needs to be indented.  Turns out, like most other “obvious” things, that coming up with a program that decides how to indent is not that straightforward.
+
+In my case fortunately the logic is pretty simple.  The level of the indentation is how nested we are in parenthesis multiplied by the tab-width (because yes, nps uses hard tabs), with the exception of a closing parenthesis which gets indented one level less.  Take this snippet for instance:
+
+```snippet of nps to show how indentation works
+proc foo(x) {
+	y = bar(x.id)
+	assert (
+		y.thingy = 3
+	)
+}
+```
+
+The first line, the ‘proc’ declaration, is indented at the zeroth column because we aren’t inside a nested pair of parenthesis.  The ‘y’ variable is indented one tab level because it’s inside the curly braces.  The body of the assert is inside two nested pairs of parenthesis, so it’s indented twice.  The closing parenthesis of the assert is indented by only one level because of the special case: it should be two, but since it’s a closing we drop one indentation level.
+
+The code for ‘nps-indent-line’ is probably not the prettiest, but seems to work nonetheless:
+
+```
+(defun nps-indent-line ()
+  "Indent current line."
+  (let (indent
+        boi-p                           ;begin of indent
+        move-eol-p
+        (point (point)))                ;lisps-2 are truly wonderful
+    (save-excursion
+      (back-to-indentation)
+      (setq indent (car (syntax-ppss))
+            boi-p (= point (point)))
+      ;; don't indent empty lines if they don't have the in it
+      (when (and (eq (char-after) ?\n)
+                 (not boi-p))
+        (setq indent 0))
+      ;; check whether we want to move to the end of line
+      (when boi-p
+        (setq move-eol-p t))
+      ;; decrement the indent if the first character on the line is a
+      ;; closer.
+      (when (or (eq (char-after) ?\))
+                (eq (char-after) ?\}))
+        (setq indent (1- indent)))
+      ;; indent the line
+      (delete-region (line-beginning-position)
+                     (point))
+      (indent-to (* tab-width indent)))
+    (when move-eol-p
+      (move-end-of-line nil))))
+```
+
+The real workhorse is ‘syntax-ppss’ that tells us how deep in parens we are.  A better real-world example is probably the indent-line of the go-mode: it’s obviously more complex, but it’s still manageable.
+
+## abbrev table
+
+This is not strictly needed, but it’s nice to have.  I’m using abbrev tables for various languages to automatically correct some small typos (like ‘inculde’ instead of ‘include’).
+
+```
+(defvar nps-mode-abbrev-table nil
+  "Abbreviation table used in `nps-mode' buffers.")
+
+(define-abbrev-table 'nps-mode-abbrev-table
+  '())
+```
+
+## Completing the mode
+
+Now that we have all the pieces, let’s define the mode:
+
+```
+;;;###autoload
+(define-derived-mode nps-mode prog-mode "nps"
+  "Major mode for nps files."
+  :abbrev-table nps-mode-abbrev-table
+  (setq font-lock-defaults nps--font-lock-defaults)
+  (setq-local comment-start "#")
+  (setq-local comment-start-skip "#+[\t ]*")
+  (setq-local indent-line-function #'nps-indent-line)
+  (setq-local indent-tabs-mode t))
+```
+
+nps mode derives from prog-mode, a generic mode used for programming language.  This way, users can easily define keybindings and options only for programming-related buffers and have a consistent experience.  The body of the ‘define-derived-mode’ macro is just some code that gets executed when the mode is activated.  There, we set the font-lock-defaults that was computed previously, define comment-start and comment-start-skip so functions like ‘comment-dwim’ (M-;) works as expected and setup the ‘indent-line-function’.  Then, also enable indent tabs mode because nps uses real hard tabs.  That’s it.
+
+Registering this mode to the ‘nps’ file extension ensures that Emacs will enable nps-mode automatically:
+
+```
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.nps" . nps-mode))
+```
+
+Sidebar: what are those ‘autoload’ comments?  It’s a trick used by Emacs to cheat and not load all the code in a file until it’s needed.  Emacs will only evaluate the ‘add-to-list’ and register a ‘nps-mode’ autoload, but won’t evaluate anything else until ‘nps-mode’ is called.  The first time that ‘nps-mode’ is called, it’ll make Emacs load the whole ‘nps-mode.el’ file and then call again ‘nps-mode’.  This is how Emacs can starts so quickly and still load TONS of emacs-lisp files.
+
+Major modes usually defines also some keys and/or integration with other packages (flymake for example).  I’m not going do to neither, but it’s still pretty easy.  To provide some keys all you have to do is to declare a ‘$mode-map’ variable that holds a keymap, then ‘define-derived-mode’ will take care of enabling it:
+
+```example of a mode-map
+(defvar nps-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "C-c c" #'do-stuff)
+    ...
+    map)) ; don’t forget to return the map here!
+```
+
+## Wrapping up
+
+Writing a major-mode from scratch this way was really interesting in my opinion.  The knowledge on how major-mode works and how to write one will probably come in handy in the future, either to write more major-mode for (hopefully) real programming languages or to tweak existing ones.
+
+In retrospect, I ended up choosing the hardest possible way to build a major mode.  For a project like this, where I’m only interested in basic font-locking, there was at least two other options to choose from:
+* use generic-mode
+* derive from cc-mode
+
+generic-mode is provide an easy, but limited, way to write major-modes.
+
+cc-mode it’s the mode that powers C, C++, Java and (at least) AWK.  It’s pretty flexible and it was designed to handle “all” C-like programming languages.
+
+However, writing nps-mode from scratch was a pleasant experience and I had some fun hacking in emacs lisp.  The implementation is also not too bad and still pretty simple, so it has been worth the time.
+
+I’m not sharing the code in this post because it’s part of the aforementioned project that it’s still heavily worked on.  The code in this post is everything I wrote in nps-mode.el anyway.
+
+Some useful links:
+
+=> https://www.emacswiki.org/emacs/GenericMode [https] generic-mode
+=> https://nullprogram.com/blog/2020/01/22/ [https] A makefile for Emacs Packages
