@@ -1,0 +1,200 @@
+Disclaimer: before today I didn’t knew anything about how zip files are structured, so take everything here with a huge grain of salt.  The good news is that the code I wrote seems to be coherent with what I’ve read online and to actually work against some zips files I had around.
+
+Background: I’d like to add support for gempubs to Telescope, the Gemini client I’m writing.  gempubs are basically a directory of text/gemini files plus other assets (metadata.txt and images presumably) all zipped in a single archive.
+
+=> https://codeberg.org/oppenlab/gempub gempub: a new eBook format based on text/gemini
+=> //telescope.omarpolo.com Telescope
+
+There are a lot of libraries to handle zip files, but I decided to give it a shot a writing something from scratch.  After all, I don’t need to edit zips or do fancy stuff, I only need to read files from the archive, that’s all.
+
+To start, in this entry we’ll only see how to dump the list of files in a zip archive.  Maybe future entries will deal with more zip stuff.
+
+From what I’ve gathered from APPNOTE.TXT and other sources, a zip file is a sequence of file “records” (a header followed by the file content) and a trailing “central directory” that holds the information about all the files.
+
+=> https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT APPNOTE.TXT
+=> https://users.cs.jmu.edu/buchhofp/forensics/formats/pkzip.html The structure of a PKZip file
+=> https://en.wikipedia.org/wiki/ZIP_(file_format) ZIP (Wikipedia)
+
+Having the central directory at the end of the file instead that at the beginning seems to be a choice to waste people time^W^W^W allow embedding zips into other file formats, such as GIFs or EXE.  I guess in some cases this may be an invaluable property, I just fail to see where, but anyway.
+
+One may think that it’s possible to scan a zip by reading these “records”, but it’s not the case unfortunately: the only source of truth for the actual files stored in the archive is the central directory.  Applications that modify the zip may reuse or leave dummy file headers around, especially if they delete or replace files.
+
+To aggravate the situation, it’s not obvious how to find the start of the central directory.  Zip are truly wonderful, huh?  I guess that adding a trailing 4-byte offset that points to the start of the central directory wouldn’t be bad, but we’re a bit too late.
+
+The central directory is a sequence of record that identifies the files in the archive followed by a digital signature, two ZIP64 fields and the end of the central directory record.  I still haven’t wrapped my head around the digital signature and the ZIP64 fields, but they don’t seem necessary to access the list of files.
+
+The last part of the central directory, the end record, contains a handy pointer to the start of the content directory.  Unfortunately, it also contains a trailing variable-width comment area that complicate things a bit.
+
+But enough with the talks, let’s jump to the code.  Since Telescope is written in C, the small toy program object of this entry will also be written in C.  The main function is pretty straightforward:
+
+```main function
+int
+main(int argc, char **argv)
+{
+	int	 fd;
+	void	*zip, *cd;
+	size_t	 len;
+
+	if (argc != 2)
+		errx(1, "missing file to inspect");
+
+	if ((fd = open(argv[1], O_RDONLY)) == -1)
+		err(1, "open %s", argv[1]);
+
+	zip = map_file(fd, &len);
+	if ((cd = find_central_directory(zip, len)) == NULL)
+		errx(1, "can't find central directory");
+
+	ls(zip, len, cd);
+
+	munmap(zip, len);
+	close(fd);
+
+	return 0;
+}
+```
+
+I think it would be easier for us to just mmap(2) the file into memory rather than moving back and forward by means of lseek(2).  map_file is a thin wrapper around mmap(2):
+
+```implementation of the map_file function
+void *
+map_file(int fd, size_t *len)
+{
+	off_t	 jump;
+	void	*addr;
+
+	if ((jump = lseek(fd, 0, SEEK_END)) == -1)
+		err(1, "lseek");
+
+	if (lseek(fd, 0, SEEK_SET) == -1)
+		err(1, "lseek");
+
+	if ((addr = mmap(NULL, jump, PROT_READ, MAP_PRIVATE, fd, 0))
+	    == MAP_FAILED)
+                err(1, "mmap");
+
+	*len = jump;
+	return addr;
+}
+```
+
+Just as we were discussing before, to locate the central directory we must first locate the “end of central directory record”.  Its structure is as follows (the numbers inside the brackets indicates the byte count)
+
+```structure of the end of central directory record
+signature[4] disk_number[2] disk_cd_number[2] disk_entries[2]
+total_entrie[2] central_directory_size[4] cd_offset[4]
+comment_len[2] comment…
+```
+
+The signature is always “\x50\x4b\x05\x06”, which helps in finding the record.  We still need to be careful, since I haven’t seen anywhere that the signature MUST NOT appear inside the comment.
+
+To be sure that we’ve actually found the real start of the end record, there’s a explicit check: the comment length plus the size of the non-variable part of the header must be equal to how far we have travelled from the end of the file.  Granted, this is not completely bulletproof, since a specially-crafted comment may appear like a proper end of central directory record, but I’m not sure what could we do better to protect against faulty files.
+
+Side note: as always, I’m treating these files as untrusted and do all the possible checks.  You don’t want a malformed file to crash your program, don’t you?
+
+One last thing: I’m totally fine with a very light and sparse usage of gotos.  In find_central_directory I’m using a ‘goto again’ when we find a false signature inside a comment.  A while loop would also do that, but it’d be a bit uglier.
+
+```the find_central_directory procedure
+void *
+find_central_directory(uint8_t *addr, size_t len)
+{
+	uint32_t	 offset;
+	uint16_t	 clen;
+	uint8_t		*p, *end;
+
+	/*
+	 * At -22 bytes from the end there is the end of the central
+	 * directory assuming an empty comment.  It's a sensible place
+	 * from which start.
+	 */
+	if (len < 22)
+		return NULL;
+	end = addr + len;
+	p = end - 22;
+
+again:
+	for (; p > addr; --p)
+		if (*p == 0x50 && memcmp(p, "\x50\x4b\x05\x06", 4) == 0)
+			break;
+
+	if (p == addr)
+		return NULL;
+
+	/* read comment length */
+	memcpy(&clen, p + 20, sizeof(clen));
+
+	/* false signature inside a comment? */
+	if (clen + 22 != end - p) {
+		p--;
+		goto again;
+	}
+
+	/* read the offset for the central directory */
+	memcpy(&offset, p + 16, sizeof(offset));
+
+	if (addr + offset > p)
+		return NULL;
+
+	return addr + offset;
+}
+```
+
+If everything went well, we’ve found the pointer to the start of the central directory.  It’s made by a sequence of file header records:
+
+```
+signature[4] version[2] vers_needed[2] flags[2] compression[2]
+mod_time[2] mod_date[2] crc32[4]
+compressed_size[4] uncompressed_size[4]
+filename_len[2] extra_field_len[2] file_comment_len[2]
+disk_number[2] internal_attrs[2] offset[4]
+filename… extra_field… file_comment…
+```
+
+The signature field is always "\x50\x4b\x01\x02", which is different from the end record and the other records fortunately.  To list the files we just have to read the file headers record until we find one with a different signature:
+
+```ls: traverse the file headers and print the filenames
+void
+ls(uint8_t *zip, size_t len, uint8_t *cd)
+{
+	uint32_t	 offset;
+	uint16_t	 flen, xlen, clen;
+	uint8_t		*end;
+	char		 filename[PATH_MAX];
+
+	end = zip + len;
+	while (cd < end - 4 && memcmp(cd, "\x50\x4b\x01\x02", 4) == 0) {
+		memcpy(&flen, cd + 28, sizeof(flen));
+		memcpy(&xlen, cd + 28 + 2, sizeof(xlen));
+		memcpy(&clen, cd + 28 + 2 + 2, sizeof(xlen));
+
+		memcpy(&offset, cd + 42, sizeof(offset));
+
+		memset(filename, 0, sizeof(filename));
+		memcpy(filename, cd + 46, MIN(sizeof(filename), flen));
+
+		printf("%s [%d]\n", filename, offset);
+
+                cd += 46 + flen + xlen + clen;
+	}
+}
+```
+
+As always, there are some magic numbers hardcoded, a real program would probably have some constants defined, but for this simple toy program I’m fine with things as is.  Also, note the pedantry in ensuring we don’t end up reading out-of-bounds in the while condition, I don’t want faulty zip files to cause invalid memory access.
+
+Now, to compile it and run:
+
+```
+% cc zipls.c -o zipls && ./zipls star_maker_olaf_stapledon.gpub
+0_preface.gmi [0]
+chapter_1_1_the_starting_point.gmi [2957]
+chapter_1_2_earth_among_the_stars.gmi [6932]
+chapter_2_1_interstellar_travel.gmi [11041]
+chapter_3_1_on_the_other_earth.gmi [20382]
+…
+```
+
+and voila, it works!
+
+To conclude this entry, one of the things that I’m still not sure about is the endiannes of the numbers.  I’m guessing they should be little endian, but it’s always that or only because the zip files were produced on a little endian machine?
+
+Otherwise I’m pretty happy with the result.  In a short time I went from knowing nothing about zips to being able to at least inspect them, using only the C standard library (well, assuming POSIX).  I’ll leave the files decoding for a next time.
