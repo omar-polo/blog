@@ -1,3 +1,5 @@
+2021/08/20: some edits to improve the code and the commentary.
+
 Disclaimer: before today I didn’t knew anything about how zip files are structured, so take everything here with a huge grain of salt.  The good news is that the code I wrote seems to be coherent with what I’ve read online and to actually work against some zips files I had around.
 
 Background: I’d like to add support for gempubs to Telescope, the Gemini client I’m writing.  gempubs are basically a directory of text/gemini files plus other assets (metadata.txt and images presumably) all zipped in a single archive.
@@ -16,6 +18,8 @@ From what I’ve gathered from APPNOTE.TXT and other sources, a zip file is a se
 => https://en.wikipedia.org/wiki/ZIP_(file_format) ZIP (Wikipedia)
 
 Having the central directory at the end of the file instead that at the beginning seems to be a choice to waste people time^W^W^W allow embedding zips into other file formats, such as GIFs or EXE.  I guess in some cases this may be an invaluable property, I just fail to see where, but anyway.
+
+Edit 2021/08/20: Another advantage of having the central directory at the end is that is probably possible to build up a zip on-the-fly, maybe outputting to standard output or to a similar non-seekable device, without having to build all the zip in memory first.
 
 One may think that it’s possible to scan a zip by reading these “records”, but it’s not the case unfortunately: the only source of truth for the actual files stored in the archive is the central directory.  Applications that modify the zip may reuse or leave dummy file headers around, especially if they delete or replace files.
 
@@ -114,7 +118,7 @@ find_central_directory(uint8_t *addr, size_t len)
 
 again:
 	for (; p > addr; --p)
-		if (*p == 0x50 && memcmp(p, "\x50\x4b\x05\x06", 4) == 0)
+		if (memcmp(p, "\x50\x4b\x05\x06", 4) == 0)
 			break;
 
 	if (p == addr)
@@ -122,6 +126,7 @@ again:
 
 	/* read comment length */
 	memcpy(&clen, p + 20, sizeof(clen));
+	clen = le16toh(clen);
 
 	/* false signature inside a comment? */
 	if (clen + 22 != end - p) {
@@ -131,6 +136,7 @@ again:
 
 	/* read the offset for the central directory */
 	memcpy(&offset, p + 16, sizeof(offset));
+	offset = le32toh(offset);
 
 	if (addr + offset > p)
 		return NULL;
@@ -138,6 +144,8 @@ again:
 	return addr + offset;
 }
 ```
+
+Edit 2021/08/20: there’s a space for a little optimisation: the end record MUST be in the last 64kb (plus some bytes), so for big files there’s no need to continue searching back until the start.  Why 64kb?  The comment length is a 16 bit integer, so the biggest end of record possible is 22 bytes plus 64kb of comment.
 
 If everything went well, we’ve found the pointer to the start of the central directory.  It’s made by a sequence of file header records:
 
@@ -167,10 +175,15 @@ ls(uint8_t *zip, size_t len, uint8_t *cd)
 		memcpy(&xlen, cd + 28 + 2, sizeof(xlen));
 		memcpy(&clen, cd + 28 + 2 + 2, sizeof(xlen));
 
+		flen = le16toh(flen);
+		xlen = le16toh(xlen);
+		clen = le16toh(clen);
+
 		memcpy(&offset, cd + 42, sizeof(offset));
+		offset = le32toh(offset);
 
 		memset(filename, 0, sizeof(filename));
-		memcpy(filename, cd + 46, MIN(sizeof(filename), flen));
+		memcpy(filename, cd + 46, MIN(sizeof(filename)-1, flen));
 
 		printf("%s [%d]\n", filename, offset);
 
@@ -196,5 +209,7 @@ chapter_3_1_on_the_other_earth.gmi [20382]
 and voila, it works!
 
 To conclude this entry, one of the things that I’m still not sure about is the endiannes of the numbers.  I’m guessing they should be little endian, but it’s always that or only because the zip files were produced on a little endian machine?
+
+Edit 2021/08/20: The majority of the number are stored in little-endian.  There are some exception, so check the documentation, but is mostly for fields like the MSDOS-like time and date and stuff like that.  The code was updated with the calls to leXYtoh() from ‘endian.h’.
 
 Otherwise I’m pretty happy with the result.  In a short time I went from knowing nothing about zips to being able to at least inspect them, using only the C standard library (well, assuming POSIX).  I’ll leave the files decoding for a next time.
