@@ -1,3 +1,5 @@
+=> /post/extracting-from-zips.gmi  Part two: “Extracting files from zips”
+
 2021/08/20: some edits to improve the code and the commentary.
 
 Disclaimer: before today I didn’t knew anything about how zip files are structured, so take everything here with a huge grain of salt.  The good news is that the code I wrote seems to be coherent with what I’ve read online and to actually work against some zips files I had around.
