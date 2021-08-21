@@ -1,6 +1,9 @@
 => /post/extracting-from-zips.gmi  Part two: “Extracting files from zips”
 
-2021/08/20: some edits to improve the code and the commentary.
+=> //git.omarpolo.com/zip-view/ The code for the whole series; see ‘zipls.c’ for this post in particular.
+
+Edit 2021/08/20: some edits to improve the code and the commentary.
+Edit 2021/08/21: stricter while condition for ‘ls’ and added links to the code
 
 Disclaimer: before today I didn’t knew anything about how zip files are structured, so take everything here with a huge grain of salt.  The good news is that the code I wrote seems to be coherent with what I’ve read online and to actually work against some zips files I had around.
 
@@ -172,7 +175,7 @@ ls(uint8_t *zip, size_t len, uint8_t *cd)
 	char		 filename[PATH_MAX];
 
 	end = zip + len;
-	while (cd < end - 4 && memcmp(cd, "\x50\x4b\x01\x02", 4) == 0) {
+	while (cd < end - 46 && memcmp(cd, "\x50\x4b\x01\x02", 4) == 0) {
 		memcpy(&flen, cd + 28, sizeof(flen));
 		memcpy(&xlen, cd + 28 + 2, sizeof(xlen));
 		memcpy(&clen, cd + 28 + 2 + 2, sizeof(xlen));

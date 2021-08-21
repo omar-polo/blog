@@ -1,5 +1,7 @@
 => /post/inspecting-zips.gmi The first part “Inspecting zip files”
 
+=> //git.omarpolo.com/zip-view/ The code for the whole series; see ‘zipview.c’ for this post in particular.
+
 Edit 2021/08/21: Stefan Sperling (thanks!) noticed an error in the ‘next’ function.  After that I found that a wrong check in ‘next’ caused an invalid memory access.  The ‘next‘ and ‘ls’ functions were corrected.
 
 Now that we know how to navigate inside a zip file let’s see how to extract files from it.  But before looking into the decompression routines (spoiler: we’ll need zlib, so make sure it’s installed) we need to do a bit of refactoring, the reason will be clear in a second.
@@ -316,8 +318,8 @@ Also note the beauty of the CRC: it can be computed chunk by chunk!  The downsid
 Now, to test all the code written so far:
 
 ```
-% cc zipls.c -o zipls -lz
-% ./zipls star_maker_olaf_stapledon.gpub metadata.txt
+% cc zipview.c -o zipview -lz
+% ./zipview star_maker_olaf_stapledon.gpub metadata.txt
 title: Star Maker
 author: William Olaf Stapledon
 published: 1937
