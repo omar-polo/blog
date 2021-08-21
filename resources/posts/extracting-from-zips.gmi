@@ -1,5 +1,7 @@
 => /post/inspecting-zips.gmi The first part “Inspecting zip files”
 
+Edit 2021/08/21: Stefan Sperling (thanks!) noticed an error in the ‘next’ function.  After that I found that a wrong check in ‘next’ caused an invalid memory access.  The ‘next‘ and ‘ls’ functions were corrected.
+
 Now that we know how to navigate inside a zip file let’s see how to extract files from it.  But before looking into the decompression routines (spoiler: we’ll need zlib, so make sure it’s installed) we need to do a bit of refactoring, the reason will be clear in a second.
 
 The ‘next’ function returns a pointer to the next file record in the central directory, or NULL if none found:
@@ -21,8 +23,8 @@ next(uint8_t *zip, size_t len, uint8_t *entry)
 
 	next = entry + 46 + flen + xlen + clen;
 	end = zip + len;
-	if (entry >= end - 46 ||
-	    memcmp(entry, "\x50\x4b\x01\x02", 4) != 0)
+	if (next >= end - 46 ||
+	    memcmp(next, "\x50\x4b\x01\x02", 4) != 0)
 		return NULL;
 	return next;
 }
@@ -59,15 +61,10 @@ ls(uint8_t *zip, size_t len, uint8_t *cd)
 
 	do {
 		filename(zip, len, cd, name, sizeof(name));
-		if (*name == '\0')
-			continue;
-
 		printf("%s\n", name);
 	} while ((cd = next(zip, len, cd)) != NULL);
 }
 ```
-
-I noticed that in my test zip file, the last file entry was for an empty file name.  I don’t know if this is something usual or not, but a zero-length strings is not a valid file name here, so for the time being I’m skipping it.
 
 I also want to modify the main a bit:
 
