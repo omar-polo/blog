@@ -1,4 +1,4 @@
-=> /posts/inspecting-zips.gmi The first part “Inspecting zip files”
+=> /post/inspecting-zips.gmi The first part “Inspecting zip files”
 
 Now that we know how to navigate inside a zip file let’s see how to extract files from it.  But before looking into the decompression routines (spoiler: we’ll need zlib, so make sure it’s installed) we need to do a bit of refactoring, the reason will be clear in a second.
 
@@ -22,7 +22,7 @@ next(uint8_t *zip, size_t len, uint8_t *entry)
 	next = entry + 46 + flen + xlen + clen;
 	end = zip + len;
 	if (entry >= end - 46 ||
-	    memcmp(entry, "\x50\x4b\x01\x02", 0) != 0)
+	    memcmp(entry, "\x50\x4b\x01\x02", 4) != 0)
 		return NULL;
 	return next;
 }
