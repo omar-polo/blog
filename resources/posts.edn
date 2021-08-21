@@ -1,4 +1,12 @@
-[{:title    "Inspecting zip files"
+[{:title    "Extracting files from zips"
+  :short    "meet zlib"
+  :slug     "extracting-from-zips"
+  :date     "2021/08/21"
+  :tags     #{:c :literate-programming}
+  :gemtext? true
+  :music    {:title "Square one"
+             :by    "Coldplay"}}
+ {:title    "Inspecting zip files"
   :short    "Look ma, without libraries!"
   :slug     "inspecting-zips"
   :date     "2021/08/19"
