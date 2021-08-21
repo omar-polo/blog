@@ -1,0 +1,334 @@
+=> /posts/inspecting-zips.gmi The first part “Inspecting zip files”
+
+Now that we know how to navigate inside a zip file let’s see how to extract files from it.  But before looking into the decompression routines (spoiler: we’ll need zlib, so make sure it’s installed) we need to do a bit of refactoring, the reason will be clear in a second.
+
+The ‘next’ function returns a pointer to the next file record in the central directory, or NULL if none found:
+
+```
+void *
+next(uint8_t *zip, size_t len, uint8_t *entry)
+{
+	uint16_t	 flen, xlen, clen;
+	uint8_t		*next, *end;
+
+	memcpy(&flen, entry + 28, sizeof(flen));
+	memcpy(&xlen, entry + 28 + 2, sizeof(xlen));
+	memcpy(&clen, entry + 28 + 2 + 2, sizeof(xlen));
+
+	flen = le16toh(flen);
+	xlen = le16toh(xlen);
+	clen = le16toh(clen);
+
+	next = entry + 46 + flen + xlen + clen;
+	end = zip + len;
+	if (entry >= end - 46 ||
+	    memcmp(entry, "\x50\x4b\x01\x02", 0) != 0)
+		return NULL;
+	return next;
+}
+```
+
+It’s very similar to the code we had in the ‘ls’ function.  It computes the pointer to the next entry and does a bit of validation.
+
+The ‘filename’ function extracts the filename given a pointer to a file record in the central directory:
+
+```
+void
+filename(uint8_t *zip, size_t len, uint8_t *entry, char *buf,
+    size_t size)
+{
+	uint16_t	flen;
+	size_t		s;
+
+	memcpy(&flen, entry + 28, sizeof(flen));
+	flen = le16toh(flen);
+
+        s = MIN(size-1, flen);
+	memcpy(buf, entry + 46, s);
+	buf[s] = '\0';
+}
+```
+
+With these two functions we can now rewrite the ‘ls’ function more easily as:
+
+```
+void
+ls(uint8_t *zip, size_t len, uint8_t *cd)
+{
+	char	name[PATH_MAX];
+
+	do {
+		filename(zip, len, cd, name, sizeof(name));
+		if (*name == '\0')
+			continue;
+
+		printf("%s\n", name);
+	} while ((cd = next(zip, len, cd)) != NULL);
+}
+```
+
+I noticed that in my test zip file, the last file entry was for an empty file name.  I don’t know if this is something usual or not, but a zero-length strings is not a valid file name here, so for the time being I’m skipping it.
+
+I also want to modify the main a bit:
+
+```
+int
+main(int argc, char **argv)
+{
+	int	 i, fd;
+	void	*zip, *cd;
+	size_t	 len;
+
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s archive.zip [files...]",
+		    *argv);
+		return 1;
+	}
+
+	if ((fd = open(argv[1], O_RDONLY)) == -1)
+		err(1, "can't open %s", argv[1]);
+
+	zip = map_file(fd, &len);
+
+#ifdef __OpenBSD__
+	if (pledge("stdio", NULL) == -1)
+		err(1, "pledge");
+#endif
+
+	if ((cd = find_central_directory(zip, len)) == NULL)
+		errx(1, "can't find the central directory");
+
+        if (argc == 2)
+		ls(zip, len, cd);
+        else {
+                for (i = 2; i < argc; ++i)
+			extract_file(zip, len, cd, argv[i]);
+	}
+
+	munmap(zip, len);
+	close(fd);
+
+	return 0;
+}
+```
+
+The difference is that now it accepts a variable number of files to extract after the name of the archive.
+
+Since I’m a bit of a OpenBSD fanboy myself, I’ve added a call to pledge(2) right before the main logic of the program: this way, even if we open a faulty zip files that tricks us into doing nasty stuff, the kernel will only allows us to write to *already* opened files and nothing more.  On FreeBSD a call to capsicum(4) would be more or less the same in this case.  On linux you can waste some hours writing a seccomp(4) filter hoping it doesn’t break on weird architectures or libc implementation :P
+
+(I’ve said already that I’m a bit of a OpenBSD fanboy myself right?)
+
+=> https://man.openbsd.org/pledge		pledge(2) manpage
+=> https://www.freebsd.org/cgi/man.cgi?capsicum	capsicum(4) manpage
+=> /posts/gmid-sandbox.gmi			Comparing sandboxing techniques
+
+To implement ‘extract_file’ I’ve used a small helper function called ‘find_file’ that given a file name returns the pointer to its file entry in the central directory.  It’s very similar to ‘ls’:
+
+```
+void *
+find_file(uint8_t *zip, size_t len, uint8_t *cd, const char *target)
+{
+	char	name[PATH_MAX];
+
+	do {
+		filename(zip, len, cd, name, sizeof(name));
+		if (!strcmp(name, target))
+			return cd;
+	} while ((cd = next(zip, len, cd)) != NULL);
+
+	return NULL;
+}
+```
+
+Then extract_file is really easy:
+
+```
+int
+extract_file(uint8_t *zip, size_t len, uint8_t *cd, const char *target)
+{
+	if ((cd = find_file(zip, len, cd, target)) == NULL)
+		return -1;
+
+	unzip(zip, len, cd);
+	return 0;
+}
+```
+
+OK, I’ve cheated a bit, this isn’t the real decompress routine, extract_file only finds the correct offset and call ‘unzip’.  Initially I hooked ‘unzip’ into ls but was a bit messy, hence the refactor.
+
+Small recap of the last post: in a zip file the file entry in the central directory contains a pointer to the file record inside the zip.  The file record is a header followed by the (usually) compressed data.  The interesting thing about zip files is that several compression algorithms (including none at all) can be used to compress files inside the same archive.  You may have file A store as-is, file B compressed with deflate and file C compressed with God knows what.
+
+The good news is that usually most zip applications use deflate and that’s all we care about here.  Also, given that it’s easy, I’m going to support also files stored without compression.  I have yet to find a zip with not compressed files thought, so that code path is completely untested.
+
+Here’s the two constants for the compression methods
+
+```
+#define COMPRESSION_NONE	0x00
+#define COMPRESSION_DEFLATE	0x08
+```
+
+The other algorithms and their codes are described at length in the zip documentation.
+
+The unzip functions takes the zip and the pointer to the file entry in the central directory, then finds the offset inside the file and computes the pointer to the start of the actual data.  The file record header is variable with: it’s made by 46 bytes followed by two variable-width fields “file name” and “extra field”.
+
+To know the compression method we need to read the compression field, an integer two bytes long starting at offset 8.  (see the previous post or the official documentation for the structure of the headers)
+
+```
+void
+unzip(uint8_t *zip, size_t len, uint8_t *entry)
+{
+	uint32_t	 size, crc, off;
+	uint16_t	 compression;
+	uint16_t	 flen, xlen;
+	uint8_t		*data, *offset;
+
+	/* read the offset of the file record */
+	memcpy(&off, entry + 42, sizeof(off));
+	offset = zip + le32toh(off);
+
+	if (offset > zip + len - 46 ||
+	    memcmp(offset, "\x50\x4b\x03\x04", 4) != 0)
+		errx(1, "invalid offset or file header signature");
+
+	memcpy(&compression, offset + 8, sizeof(compression));
+	compression = le16toh(compression);
+
+	memcpy(&crc, entry + 16, sizeof(crc));
+	memcpy(&size, entry + 20, sizeof(size));
+
+	crc = le32toh(crc);
+	size = le32toh(size);
+
+	memcpy(&flen, offset + 26, sizeof(flen));
+	memcpy(&xlen, offset + 28, sizeof(xlen));
+
+	flen = le16toh(flen);
+	xlen = le16toh(xlen);
+
+	data = offset + 30 + flen + xlen;
+	if (data + size > zip + len)
+		errx(1, "corrupted zip, offset out of file");
+
+	switch (compression) {
+	case COMPRESSION_NONE:
+                unzip_none(data, size, crc);
+		break;
+	case COMPRESSION_DEFLATE:
+                unzip_deflate(data, size, crc);
+		break;
+	default:
+		errx(1, "unknown compression method 0x%02x",
+		    compression);
+	}
+}
+```
+
+‘unzip_none’ handles the case of a file stored as-is, without compression.  It just copies the data to stdout and checks the CRC32.
+
+CRC stands for “Cyclic Redundancy Check” and is widely used to guard against accidental corruption.  The math behind it is really interesting, it uses Galois fields and has some really cool properties.  It’s also easy to compute, even by hand, but since we’re already using zlib I’ll leave the handling of that to the ‘crc32’ function provided by the library.
+
+=> https://en.wikipedia.org/wiki/Cyclic_redundancy_check “Cyclic Redundancy Check” at Wikipedia
+
+```the implementation of the unzip_none procedure
+void
+unzip_none(uint8_t *data, size_t size, unsigned long ocrc)
+{
+	unsigned long crc = 0;
+
+	fwrite(data, 1, size, stdout);
+
+	crc = crc32(0, data, size);
+	if (crc != ocrc)
+		errx(1, "CRC mismatch");
+}
+```
+
+‘unzip_deflate’ handles the case of a deflate-compressed file, and I’m going to rely on zlib to decompress the deflated stream.
+
+At least for the decompression, zlib doesn’t seem too bad to use.  (I don’t know why but I’ve always got this impression that zlib had terrible APIs…  While they’re not the prettiest, they’re not *exaggeratedly* bad either).
+
+We need to prepare a z_stream “object” with inflateInit, then run the decompression loop by repeatedly call ‘inflate’ and finally free the storage with ‘inflateEnd’.
+
+To get back at what I was blabbing before about APIs, zlib has a weird way to convey some bits of information.  A bare ‘inflateInit’ will assume a zlib or gz stream while zip archives store a bare deflate.  The way to inform zlib about this is to call ‘inflateInit2’ instead and passing a negative number in the -15…-8 range for the sliding window size parameter.  Yep, a negative window size means a deflate stream.  (The way to require a gz header is also cool, by adding 16 to the desired sliding window size…)
+
+When writing this function I stumbled upon this issue for a while, as it’s not exactly intuitive in my opinion.
+
+Anyway, the question now becomes what sliding window size choose.  From what I’ve understood, it should be computed as
+
+```pseudo code to compute the sliding window size
+size = log2(file_size)
+if (size < 8)
+	size = 8
+if (size > 15)
+	size = 15;
+return -1 * size
+```
+
+But for the zip file I’m using as a test, this doesn’t work.  I found that using unconditionally -15 seems to work on all cases: it should use a bit more memory but it’s also the default value so it isn’t a bad choice I guess.
+
+If you happen to know more about the subject, feel free to correct me so I can update the post.
+
+```
+void
+unzip_deflate(uint8_t *data, size_t size, unsigned long ocrc)
+{
+	z_stream	stream;
+	size_t		have;
+	unsigned long	crc = 0;
+	char		buf[BUFSIZ];
+
+	stream.zalloc = Z_NULL;
+	stream.zfree = Z_NULL;
+	stream.opaque = Z_NULL;
+	stream.next_in = data;
+	stream.avail_in = size;
+	stream.next_out = Z_NULL;
+	stream.avail_out = 0;
+	if (inflateInit2(&stream, -15) != Z_OK)
+		err(1, "inflateInit failed");
+
+	do {
+		stream.next_out = buf;
+		stream.avail_out = sizeof(buf);
+
+		switch (inflate(&stream, Z_BLOCK)) {
+		case Z_STREAM_ERROR:
+			errx(1, "stream error");
+		case Z_NEED_DICT:
+			errx(1, "need dict");
+		case Z_DATA_ERROR:
+			errx(1, "data error: %s", stream.msg);
+		case Z_MEM_ERROR:
+			errx(1, "memory error");
+		}
+
+		have = sizeof(buf) - stream.avail_out;
+		fwrite(buf, 1, have, stdout);
+		crc = crc32(crc, buf, have);
+	} while (stream.avail_out == 0);
+
+	inflateEnd(&stream);
+
+	if (crc != ocrc)
+		errx(1, "CRC mismatch");
+}
+```
+
+Also note the beauty of the CRC: it can be computed chunk by chunk!  The downside is that we don’t know whether the CRC matches or not until we’ve extracted all the file contents.  We could probably run the loop twice, but it would be a waste of computing, especially for big files.
+
+Now, to test all the code written so far:
+
+```
+% cc zipls.c -o zipls -lz
+% ./zipls star_maker_olaf_stapledon.gpub metadata.txt
+title: Star Maker
+author: William Olaf Stapledon
+published: 1937
+language: en
+gpubVersion: 0.0.1
+%
+```
+
+yay!  it works!
+
+In the next post I’ll add proper support for the ZIP64 spec and some final considerations.
