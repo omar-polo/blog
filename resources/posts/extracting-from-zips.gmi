@@ -169,7 +169,7 @@ Here’s the two constants for the compression methods
 
 The other algorithms and their codes are described at length in the zip documentation.
 
-The unzip functions takes the zip and the pointer to the file entry in the central directory, then finds the offset inside the file and computes the pointer to the start of the actual data.  The file record header is variable with: it’s made by 46 bytes followed by two variable-width fields “file name” and “extra field”.
+The unzip functions takes the zip and the pointer to the file entry in the central directory, then finds the offset inside the file and computes the pointer to the start of the actual data.  The file record header has a variable width: it’s made by 46 bytes followed by two variable-width fields “file name” and “extra field”.
 
 To know the compression method we need to read the compression field, an integer two bytes long starting at offset 8.  (see the previous post or the official documentation for the structure of the headers)
 
