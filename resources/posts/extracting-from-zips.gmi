@@ -1,6 +1,6 @@
 => /post/inspecting-zips.gmi The first part “Inspecting zip files”
 
-=> //git.omarpolo.com/zip-view/ The code for the whole series; see ‘zipview.c’ for this post in particular.
+=> //git.omarpolo.com/zip-utils/ The code for the whole series; see ‘zipview.c’ for this post in particular.
 
 Edit 2021/08/21: Stefan Sperling (thanks!) noticed an error in the ‘next’ function.  After that I found that a wrong check in ‘next’ caused an invalid memory access.  The ‘next‘ and ‘ls’ functions were corrected.
 
@@ -158,6 +158,10 @@ OK, I’ve cheated a bit, this isn’t the real decompress routine, extract_file
 Small recap of the last post: in a zip file the file entry in the central directory contains a pointer to the file record inside the zip.  The file record is a header followed by the (usually) compressed data.  The interesting thing about zip files is that several compression algorithms (including none at all) can be used to compress files inside the same archive.  You may have file A store as-is, file B compressed with deflate and file C compressed with God knows what.
 
 The good news is that usually most zip applications use deflate and that’s all we care about here.  Also, given that it’s easy, I’m going to support also files stored without compression.  I have yet to find a zip with not compressed files thought, so that code path is completely untested.
+
+Edit 2021/08/22: nytpu (thanks!) pointed out that the epubs specification mandates that the first file in the archive is an uncompressed one called “mimetype”.  I’ve tested with some epubs I had around and it seems to work as intended.
+
+=> https://www.w3.org/publishing/epub3/epub-ocf.html#sec-zip-container-mime  The Epub Specification
 
 Here’s the two constants for the compression methods
 
