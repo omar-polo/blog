@@ -113,7 +113,7 @@ main(int argc, char **argv)
 
 The difference is that now it accepts a variable number of files to extract after the name of the archive.
 
-Since I’m a bit of a OpenBSD fanboy myself, I’ve added a call to pledge(2) right before the main logic of the program: this way, even if we open a faulty zip files that tricks us into doing nasty stuff, the kernel will only allows us to write to *already* opened files and nothing more.  On FreeBSD a call to capsicum(4) would be more or less the same in this case.  On linux you can waste some hours writing a seccomp(4) filter hoping it doesn’t break on weird architectures or libc implementation :P
+Since I’m a bit of a OpenBSD fanboy myself, I’ve added a call to pledge(2) right before the main logic of the program: this way, even if we open a faulty zip files that tricks us into doing nasty stuff, the kernel will only allows us to write to *already* opened files and nothing more.  On FreeBSD a call to capsicum(4) would be more or less the same in this case.  On linux you can waste some hours writing a seccomp(2) filter hoping it doesn’t break on weird architectures or libc implementation :P
 
 (I’ve said already that I’m a bit of a OpenBSD fanboy myself right?)
 

@@ -1,6 +1,6 @@
 => /post/extracting-from-zips.gmi  Part two: “Extracting files from zips”
 
-=> //git.omarpolo.com/zip-view/ The code for the whole series; see ‘zipls.c’ for this post in particular.
+=> //git.omarpolo.com/zip-utils/ The code for the whole series; see ‘zipls.c’ for this post in particular.
 
 Edit 2021/08/20: some edits to improve the code and the commentary.
 Edit 2021/08/21: stricter while condition for ‘ls’ and added links to the code
