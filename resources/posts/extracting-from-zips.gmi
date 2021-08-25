@@ -119,7 +119,7 @@ Since I’m a bit of a OpenBSD fanboy myself, I’ve added a call to pledge(2) r
 
 => https://man.openbsd.org/pledge		pledge(2) manpage
 => https://www.freebsd.org/cgi/man.cgi?capsicum	capsicum(4) manpage
-=> /posts/gmid-sandbox.gmi			Comparing sandboxing techniques
+=> /post/gmid-sandbox.gmi			Comparing sandboxing techniques
 
 To implement ‘extract_file’ I’ve used a small helper function called ‘find_file’ that given a file name returns the pointer to its file entry in the central directory.  It’s very similar to ‘ls’:
 
