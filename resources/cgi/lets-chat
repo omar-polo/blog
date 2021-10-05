@@ -25,6 +25,8 @@ if [ "$PATH_INFO" = "" ]; then
 	echo
 	echo "=> $SCRIPT_NAME/post Post a message"
 	echo "=> $SCRIPT_NAME/log  Follow the conversation"
+	echo
+	echo "=> https://git.omarpolo.com/blog/tree/resources/cgi/lets-chat source"
 	exit 0
 fi
 
