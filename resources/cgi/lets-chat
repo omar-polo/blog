@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -e
+
+CHATFILE="${CHATFILE:-/tmp/lets-chat.log}"
+
+if [ "$GATEWAY_INTERFACE" != "CGI/1.1" ]; then
+	echo "not a cgi script?" >&2
+	exit 1
+fi
+
+if [ "$SERVER_PROTOCOL" != "GEMINI" ]; then
+	echo "not running over gemini?" >&2
+	exit 1
+fi
+
+# if [ "$REMOTE_USER" = "" ]; then
+# 	printf "60 client certificate required\r\n"
+# 	exit 0
+# fi
+
+if [ "$PATH_INFO" = "" ]; then
+	printf "20 text/gemini\r\n"
+	echo "# Let's chat over Gemini!"
+	echo
+	echo "=> $SCRIPT_NAME/post Post a message"
+	echo "=> $SCRIPT_NAME/log  Follow the conversation"
+	exit 0
+fi
+
+if [ "$PATH_INFO" = "/post" ]; then
+	if [ $# -eq 0 ]; then
+		exec printf "10 message to send: \r\n"
+	else
+		now="$(date '+%Y-%m-%d %H:%M')"
+		user="${REMOTE_USER##*/CN=}"
+		user="${user%%/*}"
+		echo "$now ${user:-anon}: $@" >> "${CHATFILE}"
+		exec printf "30 $SCRIPT_NAME\r\n"
+	fi
+fi
+
+if [ "$PATH_INFO" = "/log" ]; then
+	printf "20 text/gemini\r\n"
+	exec tail -f "${CHATFILE}"
+fi
+
+exec printf "51 not found\r\n"
