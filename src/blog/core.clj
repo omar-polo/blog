@@ -1,8 +1,9 @@
 (ns blog.core
   (:require
-   [blog.rss :as rss]
-   [blog.http :as http]
    [blog.gemini :as gemini]
+   [blog.http :as http]
+   [blog.net-gemini :as net-gemini]
+   [blog.rss :as rss]
    [blog.time :as time]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -239,6 +240,12 @@ Disallow: /cgi/man/
   (sh "rsync" "-r" "--delete" "resources/out/http/"   "op:sites/www.omarpolo.com/")
   (sh "rsync" "-r" "--delete" "resources/out/gemini/" "op:gemini/gemini.omarpolo.com"))
 
+(defn antenna
+  "Ping antenna"
+  []
+  (net-gemini/head "warmedal.se" 1965
+                   (str "gemini://warmedal.se/~antenna/submit?gemini://gemini.omarpolo.com")))
+
 (defn stop-jetty []
   (.stop @j)
   (reset! j nil))
@@ -248,9 +255,10 @@ Disallow: /cgi/man/
   (load-pages!)
   (doseq [action actions]
     (case action
-      "clean"  (clean)
-      "build"  (build)
-      "deploy" (deploy)
+      "clean"   (clean)
+      "build"   (build)
+      "deploy"  (deploy)
+      "antenna" (antenna)
 
       (println "unrecognized action" action))))
 
@@ -267,6 +275,8 @@ Disallow: /cgi/man/
   (do
     (deploy)
     (local-deploy))
+
+  (antenna)
 
   (do
     (load-posts!)
