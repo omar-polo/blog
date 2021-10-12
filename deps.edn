@@ -4,7 +4,7 @@
         org.clojure/data.xml {:mvn/version "0.2.0-alpha6"}
         com.omarpolo/gemtext {:mvn/version "0.1.5"}}
 
- :paths ["src" "resources"]
+ :paths ["classes" "src" "resources" "java"]
 
  :aliases
  {:act {:main-opts ["-m" "blog.core"]}}}
