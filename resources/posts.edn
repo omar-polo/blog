@@ -1,4 +1,12 @@
-[{:title    "Extracting files from zips"
+[{:title    "One year of gmid"
+  :short    "We can reach our destination, but we're still a ways away"
+  :slug     "one-year-of-gmid"
+  :date     "2021/10/12"
+  :tags     #{:gmid :gemini}
+  :gemtext? true
+  :music    {:title "Driver 8"
+             :by    "R.E.M."}}
+ {:title    "Extracting files from zips"
   :short    "meet zlib"
   :slug     "extracting-from-zips"
   :date     "2021/08/21"

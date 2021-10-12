@@ -1,0 +1,61 @@
+The first commit in gmid git repository was the 2 October of the last year, with the 1.0 being tagged a couple of days later 2020-10-07.  I wanted to publish this on some days ago, exactly one year after the first release, but I couldn’t make it in time.
+
+gmid has been my introduction to Gemini.  I think I’ve wrote about it before, but the first time I’ve used a Gemini client (I think it was amfora, not sure) was to see if gmid was acting correctly.  Overall, I’m happy of how gmid has grown in this year.  It’s also the first bit of code I wrote that gave me the impression it was useful to others, and it still make my day when I hear someone says that they’re using it.
+
+Incidentally, I’ve also uploaded this capsule a year ago, on the 4th of October.  (I can tell thanks to a certain TLS certificate expiring.)
+
+I took it as a chance to think about the project and where I’m headed.
+
+The first version, compared to what gmid is now, is almost a joke.  It was a single C file, ~500 LOC, with a hand-written loop around poll(2) to serve multiple clients using a single thread.  Nothing fancy, but it worked.  No CGI scripts, no FastCGI, no directory listings, no configuration, just serving static files.
+
+Then it slowly grew.  First with CGI scripts support, then by adding a flexible configuration file, later by improving the performance (and the code!) thanks to libevent and finally by adding FastCGI support.
+
+The configuration file was added at the beginning of this year, around the 15 January.  Looking back, I can say that adding a configuration file was the major turning point for gmid.  It allowed it to become one of the most featureful gemini servers available today, but it also kinda shifted the point: gmid was not merely a simple zero-conf gemini server, but something more complex.
+
+Adding a configuration file was the right choice I think, after all I’m developing gmid so it can be useful *to me* in the first place, and I needed more flexibilty, but once you have a configuration file it’s difficult to say “no” and don’t add features.  This was one of the lessons learned.  In some sense, a configuration file is a way to add “infinite extensibility” to a program.
+
+
+## Sandboxing by default
+
+Developing gmid allowed me to study and apply the idea of sandboxing a process.  I’m talking about “self-sandboxing”, that is when a process voluntarily restricts itself, not to “external” sandboxes like a jail, LXC, apparmor or SELinux or …  I’m more interested in the former kind more than the latter because it’s 1) primarily under the control of the developer and 2) doesn’t require any kind of setup on the users part.
+
+gmid is the only server I know that sandboxes itself on multiple OSes.  On OpenBSD uses pledge and unveil, on FreeBSD capsicum and on linux seccomp and landlock (if available).
+
+To be honest, this is not something I’m particularly happy of.  It would be better if the whole ecosystem employed these techniques.  OpenBSD’ unveil and the new Linux’ landlock API in particular shouldn’t be hard to use even in high level languages.
+
+If you’re using OpenBSD I know two other Gemini server that are are properly sandboxed:
+
+=> https://git.xosc.org/twind/		twind
+=> https://tildegit.org/solene/vger	vger
+
+
+## Future plans
+
+I like the idea of “finished software”.  I don’t think that finishing a project means throwing it in the trash can and ignoring it, it still needs attentions, but most of the work should be the occasional bug fixing and documentation improvements.  Or at least that’s the idea.
+
+I have a long plan to finish gmid.  It should take two releases.  Hope I’m not too optimistic, but I’m serious about finishing this project.
+
+The next release, v1.8 still without a code name, would be probably the last version to introduce a bunch of new features, other than the usual improvements.
+
+I’ve restructured the server internally and reworked the FastCGI implementation: I still haven’t done any benchmarking even if I expect improvements, but more importantly the code is more clear, easier to follow, and possible bugs will stand out more.
+
+The test suite was also restructured and now is easier to reply only a subset of the tests, something that’s really useful during debugging sessions, but also doesn’t stop anymore at the first error.  Instead, it continues with the next test and produce a nice report with the falling tests.
+
+Talking about new features, I’m drafting the proxying code: gmid will be able to relay gemini requests to other servers if configured to do so.  I’m particularly exited for this because it’ll allow to deploy the duckling-proxy on my server, protect it with the ‘require client ca’ rule and use it from all my devices.
+
+Once that’s in place, I’d like to find a way to allow gmid proxy *other protocols* stream to some backend application.  The idea would be to allow to easily set up a, say, titan server and have gmid relay the data.  (I’m still not sure whether titan is a good idea or not, but I’d like to play a bit with it.)  There will probably be limitation on the kinds of protocols gmid will be able to relay, but that’s OK.
+
+(This is not a comprehensive list of the improvements; as always, check out the ChangeLog.)
+
+The last release, v1.9 will instead focus only on internal changes.  I want to bring gmid up to the same level of quality of the OpenBSD daemons.  Well, at least that’s the goal ;-)
+
+This means that 1.9 will focus on re-exec’ing the children process, improve the imsg message passing and making it fully asynchronous (which will also improve the overall performance.)  These three points seems really easy when written, but due to how the server expects the data to flow internally, will take some time.
+
+I already have a diff that rewrites how the gmid process are managed, but it’s not complete and simply too complex.
+
+In the meantime I’m also trying to improve the documentation.  I’ve imported the sources of the official gemini capsule and web site into the repository to simplify my workflow and make easier for other people to contribute.  I’ve also started to write a quickstart page that covers how to set up a capsule using gmid:
+
+=> gemini://gmid.omarpolo.com/quickstart.gmi	[gemini] gmid quickstart
+=> https://gmid.omarpolo.com/quickstart.html	[http] gmid quickstart
+
+and added two scripts to the ‘contrib’ directory: gencert and renew-certs.  Gencerts is a simple wrapper around openssl to create self-signed certificates, while renew-certs is something meant to be run in a cronjob and checks for certificate expiration.  It can renew and restart the server too.  I think I’ll write more about these in the following days.
