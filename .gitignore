@@ -1,3 +1,5 @@
+**/*.class
+
 resources/dots/
 resources/out/
 .nrepl-port
