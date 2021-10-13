@@ -4,6 +4,6 @@
 
 Issue
 
-	javac java/com/omarpolo/gemini/Gemini.java
+	make
 
 then do the usual clojure stuff.
