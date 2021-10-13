@@ -2,6 +2,7 @@ package com.omarpolo.gemini;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.security.KeyManagementException;
@@ -54,6 +55,10 @@ public class Response implements AutoCloseable {
     }
 
     public static class MalformedResponse extends Exception {}
+
+    public Response(String url) throws IOException, MalformedResponse {
+        this(new URL(url));
+    }
 
     public Response(URL url) throws IOException, MalformedResponse {
         this(url.getHost(), url.getPort(), url.toString() + "\r\n");
