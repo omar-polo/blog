@@ -1,7 +1,13 @@
 (ns blog.net-gemini
-  (:import (com.omarpolo.gemini Response)))
+  (:import (com.omarpolo.gemini Request)))
 
 (defn head [host port req]
-  (with-open [res (Response. host port (str req "\r\n"))]
+  (with-open [res (Request. host port (str req "\r\n"))]
     {:code (.getCode res)
      :meta (.getMeta res)}))
+
+(comment
+  (with-open [res (Request. "gemini://localhost/index.gmi")]
+    {:code (.getCode res)
+     :meta (.getMeta res)})
+)

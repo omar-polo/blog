@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-public class Response implements AutoCloseable {
+public class Request implements AutoCloseable {
 
     private final BufferedReader in;
     private final PrintWriter out;
@@ -54,15 +54,15 @@ public class Response implements AutoCloseable {
 
     public static class MalformedResponse extends Exception {}
 
-    public Response(String uri) throws IOException, MalformedResponse, URISyntaxException {
+    public Request(String uri) throws IOException, MalformedResponse, URISyntaxException {
         this(new URI(uri));
     }
 
-    public Response(URI url) throws IOException, MalformedResponse {
+    public Request(URI url) throws IOException, MalformedResponse {
         this(url.getHost(), url.getPort(), url.toString() + "\r\n");
     }
 
-    public Response(String host, int port, String req) throws IOException, MalformedResponse {
+    public Request(String host, int port, String req) throws IOException, MalformedResponse {
         if (port == -1) {
             port = 1965;
         }
