@@ -1,9 +1,3 @@
 # blog
 
-## How to build
-
-Issue
-
-	make
-
-then do the usual clojure stuff.
+just another random tech blog

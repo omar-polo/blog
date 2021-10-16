@@ -243,8 +243,7 @@ Disallow: /cgi/man/
 (defn antenna
   "Ping antenna"
   []
-  (net-gemini/head "warmedal.se" 1965
-                   (str "gemini://warmedal.se/~antenna/submit?gemini://gemini.omarpolo.com")))
+  (net-gemini/ping-antenna "gemini://gemini.omarpolo.com"))
 
 (defn stop-jetty []
   (.stop @j)

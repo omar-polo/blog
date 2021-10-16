@@ -1,13 +1,15 @@
 (ns blog.net-gemini
-  (:import (com.omarpolo.gemini Request)))
+  (:require [gemini.core :as gemini]))
 
-(defn head [host port req]
-  (with-open [res (Request. host port (str req "\r\n"))]
-    {:code (.getCode res)
-     :meta (.getMeta res)}))
+(def antenna-uri "gemini://warmedal.se/~antenna")
+
+(defn ping-antenna
+  "Sends the given `url` to antenna."
+  [url]
+  (gemini/with-request [req {:request (str antenna-uri "/submit?" url)
+                             :follow-redirects? true}]
+    (gemini/body-as-string! req)))
 
 (comment
-  (with-open [res (Request. "gemini://localhost/index.gmi")]
-    {:code (.getCode res)
-     :meta (.getMeta res)})
+  (ping-antenna "gemini://gemini.omarpolo.com")
 )
