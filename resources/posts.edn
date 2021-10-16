@@ -1,4 +1,12 @@
-[{:title    "One year of gmid"
+[{:title    "A Clojure library for Gemini"
+  :short    "antenna inspired things"
+  :slug     "gemini-clojure"
+  :date     "2021/10/16"
+  :tags     #{:clojure :gemini}
+  :gemtext? true
+  :music    {:title "Good Advices"
+             :by    "R.E.M."}}
+ {:title    "One year of gmid"
   :short    "We can reach our destination, but we're still a ways away"
   :slug     "one-year-of-gmid"
   :date     "2021/10/12"

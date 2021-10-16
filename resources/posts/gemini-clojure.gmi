@@ -1,0 +1,58 @@
+I’d like to announce ‘com.omarpolo/gemini’: a new clojure library to make Gemini requests.
+
+=> https://github.com/omar-polo/gemini com.omarpolo/gemini: A Clojure library to make Gemini requests
+
+It’s also available on clojars, so go download it! :D
+
+## background
+
+I needed something to ping antenna when I publish things on this blog.  The site is assembled using some clojure scripts (not the most idiomatic clojure you’d read, but it works) and I’m already shelling out to rsync for the upload.  To ping antenna I wanted to do something natively.
+
+Gemini is a simple protocol, isn’t it?  Writing something from scratch should be simple, right?
+
+## the making of
+
+It wasn’t simple, at least for me.  I kinda get sleepy when I have to dig into the Java stdlib to learn how to do things.  And I don’t know how to do networking at all in java, so there was a lot that I needed to learn.
+
+I ended up writing a Java class, not because it’s required but because it’s easier.  It exposes a really simple and barebone APIs to make Gemini requests and then wrote a more idiomatic (I hope) clojure wrapper around.
+
+Speaking of Java, disabling the certificate validation wasn’t exactly straightforward (you need to provide your own X509ExtendedTrustManager) and quite surprisingly it doesn’t do SNI by default.
+
+The magic spell to force a SSLSocket to do SNI is to
+
+```
+var params = new SSLParameters();
+params.setServerNames(Collections.singletonList(new SNIHostName(host)))
+
+/* … */
+
+var socket = …;
+socket.setSSLParameters(params);
+```
+
+I was able to contribute back the same trick to jgemini, a Java graphical Gemini browser.
+
+=> https://github.com/kevinboone/jgemini jgemini: A Java-based graphical browser for the Gemini protocol
+
+
+## The API
+
+The main function is ‘fetch’.  It takes a map and return a map.  So clojure-ish.
+
+The feature list is pretty short honestly:
+
+* can use a gemini server as proxy
+* can follow redirects
+
+and there’s a major drawback: the ‘close’ function must be called to clean things up.  There’s a ‘with-request’ macro (similar to ‘with-open’) that should help.
+
+It’s easy to stream a request since I’m exporting the BufferedReader to clojure clients, you can just read from it.  In combo with my gemtext library, it’s possible to stream text/gemini!
+
+=> https://github.com/omar-polo/gemtext  com.omarpolo/gemtext: text/gemini for clojure/clojurescript
+
+
+## The future
+
+Gemini is simple, so there isn’t very much more to do.  I planning to provide a function to control the certificates, so that one can implement TOFU on top of this library, but that’s that.
+
+I’m still not completely happy of the provided APIs, but they doesn’t seem too bad and I don’t have a clue on how to improve them.  I’m open to suggestions thought ;)
