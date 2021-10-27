@@ -155,7 +155,9 @@ To use the helper program one needs to
 
 ## OpenBSD-specific
 
-EMMS should use mixerctl(1) to adjust the volume on OpenBSD.  While it should work out of the box, mixerctl is considered too low level for normal user, and should be available only for root from 6.8 onward.
+2021/10/27 edit: some time ago I’ve upstreamed this bit and it’s now part of the latest EMMS distribution, ‘sndioctl’ is used by default now, zero configuration required.  I’m leaving this section as-is anyway for historical purposes.
+
+EMMS uses mixerctl(1) to adjust the volume on OpenBSD.  While it should work out of the box, mixerctl is considered too low level for normal users, and should be available only for root from 6.8 onward.
 
 So, here's a emms-volume-sndioctl.el that works.  It's basic, and should be probably polished a little bit more.
 
