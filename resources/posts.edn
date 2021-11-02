@@ -1,4 +1,12 @@
-[{:title    "A Clojure library for Gemini"
+[#_{:title    "My favorite (OpenBSD) hacks"
+    :short    "These are a few of my favorite hacks"
+    :slug     "my-favorite-openbsd-hacks"
+    :date     "2021/10/17"
+    :tags     #{:OpenBSD}
+    :gemtext? true
+    :music    {:title "Our favorite hacks"
+               :by    "OpenBSD"}}
+ {:title    "A Clojure library for Gemini"
   :short    "antenna inspired things"
   :slug     "gemini-clojure"
   :date     "2021/10/16"
