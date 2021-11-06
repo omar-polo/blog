@@ -119,6 +119,13 @@
 (defn home-page
   [{:keys [posts has-next has-prev nth]}]
   (with-page {:title "Home"}
+    [:p "Hello!  Sometimes I remember that I have a blog and post something here.  "
+     "You can find me " [:strike "wasting time"]
+     " posting interesting stuff on the fediverse too: "
+     ;; <a rel="me" href="https://bsd.network/@op">Mastodon</a>
+     [:a {:href "https://bsd.network/@op"
+          :rel "me"}
+      "@op@bsd.network"] "."]
     (map (partial post-fragment {:title-with-link? true})
          posts)
     [:nav.post-navigation
