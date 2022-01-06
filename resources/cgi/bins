@@ -1,0 +1,42 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use v5.10;
+
+my $path = $ENV{'PATH_INFO'};
+my $script_path = $ENV{'SCRIPT_NAME'};
+my $server_name = $ENV{'SERVER_NAME'};
+
+sub reply {
+	my ($code, $meta) = @_;
+	print "$code $meta\r\n";
+	if ($code != 20) {
+		exit(0);
+	}
+}
+
+if (! defined($path) || $path eq '') {
+	reply 20, 'text/gemini';
+	print <<EOF;
+# gemini bin
+
+Append a clbin.com URL to see it via your preferred gemini browser!
+
+For example: gemini://${server_name}${script_path}/clbin.com/XYZ
+
+--eof
+EOF
+	exit(0);
+}
+
+# trim initial slash so we have only the hostname
+$path =~ s,^/,,;
+
+# implement multiple bins eventually...
+if ($path =~ m,^clbin.com/.*,) {
+        reply 20, 'text/plain';
+	exec 'curl', 'https://'.$path;
+} else {
+	reply 59, 'bin not supported';
+}
