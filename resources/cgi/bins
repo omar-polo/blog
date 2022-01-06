@@ -35,7 +35,7 @@ $path =~ s,^/,,;
 
 # implement multiple bins eventually...
 if ($path =~ m,^clbin.com/.*,) {
-        reply 20, 'text/plain';
+	reply 20, 'text/plain';
 	exec 'curl', 'https://'.$path;
 } else {
 	reply 59, 'bin not supported';
