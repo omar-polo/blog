@@ -1,4 +1,21 @@
-[#_{:title    "My favorite (OpenBSD) hacks"
+[{:title    "I wrote a music player"
+  :short    "experiments that I end up liking"
+  :slug     "amused"
+  :date     "2022/02/19"
+  :tags     #{:c :music}
+  :gemtext? true
+  :music    {:title "Century Child"
+             :by    "Nightwish"}}
+ {:title    "Telescope 0.7"
+  :short    "New release for my favourite gemini browser"
+  :slug     "telescope-07"
+  :date     "2022/01/13"
+  :tags     #{:gemini}
+  :gemtext? true
+  :music    {:title "Via Paolo Fabbri 43"
+             :by    "Francesco Guccini"
+             :url   "https://www.youtube.com/watch?v=hzR9d2payMY"}}
+ #_{:title    "My favorite (OpenBSD) hacks"
     :short    "These are a few of my favorite hacks"
     :slug     "my-favorite-openbsd-hacks"
     :date     "2021/10/17"
