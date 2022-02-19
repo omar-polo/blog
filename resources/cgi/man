@@ -60,7 +60,7 @@ sub view_man {
 	my $args = @_;
 	reply(20, 'text/plain');
 	say "% uname -psr";
-	say "OpenBSD 6.8 amd64";
+	say "OpenBSD 7.0 amd64";
 	say "% man ", join(' ', @_);
 
 	my $pid;
