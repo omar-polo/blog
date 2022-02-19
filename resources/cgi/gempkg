@@ -82,8 +82,8 @@ def homepage():
     print("Welcome to GemPKG,",
           "the gemini interface for the OpenBSD ports collection.")
     print("")
-    print(f"=> {script_path}/search Search for a package")
-    print(f"=> {script_path}/all All categories")
+    print(f"=> {script_path}/search/ Search for a package")
+    print(f"=> {script_path}/all/ All categories")
     print("")
     print(
         "What you search will be matched against the package name (pkgstem),",
@@ -93,8 +93,8 @@ def homepage():
 
 def nav():
     print(f"=> {script_path}/ GemPKG")
-    print(f"=> {script_path}/search Search for a package")
-    print(f"=> {script_path}/all All Categories")
+    print(f"=> {script_path}/search/ Search for a package")
+    print(f"=> {script_path}/all/ All Categories")
     print("")
 
 
@@ -134,6 +134,7 @@ def searchpage():
 
     reply(20, "text/gemini;lang=en")
     nav()
+    print(f"# packages matching {query}\n")
     for row in cursor:
         stem, comment, fullpkgpath = row
         print(f"=> {script_path}/{fullpkgpath}/ {stem}: {comment}")
