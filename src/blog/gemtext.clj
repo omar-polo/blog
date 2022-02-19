@@ -39,10 +39,23 @@
    (and (= type :p)
         (= body ""))))
 
+(defn id-from-title [title]
+  (-> title
+      (str/replace #" +" "-")
+      .toLowerCase))
+
+(defn fix-headlines-id [[type body :as t]]
+  (case type
+    :h1 [:h1 {:id (id-from-title body)} body]
+    :h2 [:h2 {:id (id-from-title body)} body]
+    :h3 [:h3 {:id (id-from-title body)} body]
+    t))
+
 (defn to-hiccup [doc]
   (->> (gemtext/to-hiccup doc)
        (filter not-empty-ps)
-       (map maybe-patch-link)))
+       (map maybe-patch-link)
+       (map fix-headlines-id)))
 
 (comment
   (to-hiccup [[:link "http://f.com" "hello"]])
