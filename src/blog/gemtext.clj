@@ -24,7 +24,8 @@
                    :alt body}]]
            [:figcaption body]])
 
-        (re-matches #".*\.gmi" (:href attrs))
+        (and (re-matches #".*\.gmi" (:href attrs))
+             (not (re-matches #"^gemini://.*" (:href attrs))))
         [:p.link [:a {:href (str/replace (:href attrs)
                                          #"\.gmi$"
                                          ".html")}
