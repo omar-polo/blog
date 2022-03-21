@@ -48,16 +48,17 @@
      [:p "Blog proudly generated with "
       [:a {:href "https://git.omarpolo.com/blog/"}
        [:code "(clojure)"]]]]
-    [:noscript
-     [:img {:src "https://goatcounter.omarpolo.com/count?p=/test-img"}]]
-    [:script "
-;(function () {
-  if (window.location.host !== 'www.omarpolo.com')
-    window.goatcounter = {no_onload: true}
-})();"]
-    [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
-              :async true
-              :src "//goatcounter.omarpolo.com/count.js"}]]))
+    (comment
+      [:noscript
+       [:img {:src "https://goatcounter.omarpolo.com/count?p=/test-img"}]]
+      [:script "
+  ;(function () {
+    if (window.location.host !== 'www.omarpolo.com')
+      window.goatcounter = {no_onload: true}
+  })();"]
+      [:script {:data-goatcounter "https://goatcounter.omarpolo.com/count"
+                :async true
+                :src "//goatcounter.omarpolo.com/count.js"}])]))
 
 (defn link->images
   "traverse `doc` and replace every link to an image to an `img` tag."
