@@ -59,8 +59,6 @@ sub man_cmd {
 sub view_man {
 	my $args = @_;
 	reply(20, 'text/plain');
-	say "% uname -psr";
-	`uname -psr`
 	say "% man ", join(' ', @_);
 
 	my $pid;
@@ -68,7 +66,7 @@ sub view_man {
 		die();
 	} elsif ($pid == 0) {
 		exec("man -Tutf8 -- " . man_cmd(@_) .
-		     " | col -b | sed '\$d'");
+		     " | col -b");
 	}
 	waitpid($pid, 0);
 }
