@@ -12,7 +12,6 @@ Telescope is a w3m- and Emacs-inspired Gemini browser.
 kamid is a FREE, easy-to-use and portable implementation of a 9p file server daemon for UNIX-like systems with a strong focus on security and correctness.
 
 => vc-got.gmi           Emacs VC backend for Game of Trees
-=> https://gameoftrees.org/  See also: Got VCS
 Got (shorts for “Game of Trees”) is a version control system. vc-got is an attempt to bring Got to Emacs.
 
 => //dots.omarpolo.com  My dotfiles
