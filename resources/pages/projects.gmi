@@ -15,7 +15,7 @@ kamid is a FREE, easy-to-use and portable implementation of a 9p file server dae
 => https://gameoftrees.org/  See also: Got VCS
 Got (shorts for “Game of Trees”) is a version control system. vc-got is an attempt to bring Got to Emacs.
 
-=> /dots/  My dotfiles
+=> //dots.omarpolo.com  My dotfiles
 It’s not really a project *per se*, but it’s nice to share.
 
 => star-platinum.gmi    star-platinum - take control of your applications, one key at the time
