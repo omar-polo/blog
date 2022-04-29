@@ -1,0 +1,332 @@
+A couple of weeks ago bcallah@ imported QBE into the OpenBSD ports tree and, since then, I was looking forward to play with it.  When a friend of mine studying for a course on declarative programming in F# told me they wrote a little interpreter i forced^W convinced him to write a compiler for brainfuck in F# that outputs QBE, and I'm following him in Haskell.
+
+(heph, now you have to write a blog post too!)
+
+Why in Haskell?  It's the closer language to F# that I know.  I don't any idea on how (if?) mono/.Net works on OpenBSD, and I don't have any experience in OCaml (even if I've read a bit about it).  On the other hand, I studied a bit of Haskell in uni and used XMonad for a while.
+
+I don't think I've ever written a compiler for brainfuck, but if I had to write one again I don't think I'll write like this.  Brainfuck it's a really simple language, and the compiler I've written is, maybe, a bit overkill: it includes a tokenizer and a parser.  Turns out probably it wasn't a completely bad idea, but we'll see that in a follow up post.
+
+=> https://en.wikipedia.org/wiki/Brainfuck	Brainfuck
+=> https://c9x.me/compile/			QBE
+=> https://briancallahan.net/blog/20210829.html	Let's get hands-on with QBE
+
+Brainfuck is a really simple programming language: there's a tape of integers and six "operations" defined.  + and - increments/decrements the current cell, < and > moves one cell to the left or one to the right, "." and "," are input and output commands and to get the turing-completeness [ and ] are a looping construct.  It's called esoteric for a reason.
+
+QBE is a compiler backend: instead of outputting assembly, one can output QBE IL (intermediate language) and leave the assembly step to QBE.
+
+Without further ado, here's the source for bfc, a brainfuck compiler, fully annotated.  Please keep in mind thought that this was the first bit of Haskell I wrote after many, many years.  Don't use it as a reference on how to write proper Haskell code, because it's not.
+
+All the code is available here:
+
+=> https://codeberg.org/op/bfc		Codeberg: op/bfc
+=> https://github.com/omar-polo/bfc/	GitHub: omar-polo/bfc
+
+bfc uses very little from the standard library: just printf from Text.Printf, getArgs from System.Environment and the functions in Prelude.
+
+``` module declaration and imports
+module Main where
+
+import Text.Printf
+import System.Environment as E
+```
+
+The first part is a simple tokenizer.  A tokenizer is a program that reads a file (or any stream of characters really) and returns a stream of tokens.  Let's start by modeling the tokens:
+
+```definition of the Token type
+data Token = Plus
+           | Minus
+           | Lesser
+           | Greater
+           | Point
+           | Comma
+           | BracketOpen
+           | BracketClose
+           deriving (Eq, Show)
+```
+
+Any character outside of those is implicitly a comment in brainfuck: that's why the tokenizer routine is so simple:
+
+```the tokenize procedure
+tokenize :: String -> [Token]
+tokenize (x:xs) =
+  let table = [ ('-', Minus), ('+', Plus)
+              , ('<', Lesser), ('>', Greater)
+              , ('.', Point), (',', Comma)
+              , ('[', BracketOpen), (']', BracketClose) ]
+      token = lookup x table in
+    case token of
+      Just x  -> x:(tokenize xs)
+      Nothing -> tokenize xs
+tokenize _ = []
+```
+
+It's quite common in Haskell, I guess, to have functions like this.  It process a single character at a time and calls back itself with the rest of the things to process.
+
+Being a lazy language, the recursive call is not done until the caller tries to access the elements of the list.  More than a list, maybe, the correct term is "stream", or "sequence".
+
+Let's see if the tokenizer works:
+
+```transcription of a ghci (interactive GHC) session
+*Main> tokenize "?[+.+]?"
+[BracketOpen,Plus,Point,Plus,BracketClose]
+```
+
+With a tokenizer in place, the next step is usually to write a parser able to create an AST (abstract syntax tree) starting from the stream of tokens.
+
+Since we're writing Haskell, let's start with the types declaration.
+
+```definition of the "expression" and AST type
+data Expr = Inc
+          | Dec
+          | ShiftLeft
+          | ShiftRight
+          | Input
+          | Output
+          | Loop [Expr]
+          deriving (Eq, Show)
+
+type AST = [Expr]
+```
+
+Unlike the tokenizer, our parser can fail.  Well, real world tokenizers can fail too, it's just that brainfuck is so simple that a tokenizer can't fail by design.
+
+To model the fact that our parser can fail I'm using the Either type.  It's fundamentally a tuple of a "Right" value and a "Left" error.
+
+```type declaration for the parser function
+parser :: [Token] -> [AST] -> Either String AST
+```
+
+The parser uses an explicit stack of AST to keep track of the loops.
+
+```prologue of the parser function
+parser (x:xs) stack =
+  case x of
+    BracketOpen -> parser xs ([]:stack)
+```
+
+Upon finding a [ I'm pushing an empty AST on the stack.
+
+```handling of the BracketClose case
+    BracketClose -> case stack of
+                      (y:(z:zs)) -> parser xs $ pushexpr (Loop (reverse y)) (z:zs)
+                      _          -> Left "unexpected end of loop"
+```
+
+and when reading the matching ] that temporary AST gets popped and wrapped in a Loop.  The strange destructuring is to make sure that there's at least two elements on the stack.  If there aren't then it's an unmatched end of loop: report the error and terminate
+
+```handling of the other tokens
+    _ -> parser xs $ pushexpr expr stack
+      where expr = case x of
+                     Plus    -> Inc
+                     Minus   -> Dec
+                     Lesser  -> ShiftLeft
+                     Greater -> ShiftRight
+                     Point   -> Output
+                     Comma   -> Input
+```
+
+The other tokens have a one-to-one mapping to our expressions, so it's just a matter of a simple translation
+
+```base cases for the parser function
+parser _ [x] = return (reverse x)
+parser _ _ = Left "unterminated loop"
+```
+
+If we've reached the end of the token stream with only one element on the stack then it's all good, otherwise we have an unterminated loop and we report the error.
+
+I've used an helper function, a one-liner actually, to push an expression in front of the current AST at the top of the stack
+
+```pushexpr helper function
+pushexpr expr (y:ys) = (expr:y):ys
+```
+
+There are sequences in haskell that guarantees O(1) for append, but to keep everything simple (and because my knowlegde is really limited) I decided to just use lists.  Thus, I'm building the inverted AST and then reversing it once it gets popped off the stack.
+
+Since the parser needs an explicit stack, I wrote a simple frontend for it:
+
+```the parser function
+parse toks = parser toks [[]]
+```
+
+Nice.  Let's test it!
+
+```transcription of ghci
+*Main> parse $ tokenize "?[+.+]?"
+Right [Loop [Inc,Output,Inc]]
+*Main> parse $ tokenize "[.]["
+Left "unterminated loop"
+*Main> parse $ tokenize "]"
+Left "unexpected end of loop"
+```
+
+Seems to work just fine!
+
+The only thing left is now turning this abstract syntax tree into a QBE intermediate language.
+
+I'm using the Instruction type to represent the QBE instruction that we need:
+
+```definition of the Instruction type
+data Instruction = StoreW (Int, Int)        -- storew a, b
+                 | StoreL (Int, Int)        -- storel a, b
+                 | LoadW (Int, Int)         -- a =w loadw b
+                 | LoadL (Int, Int)         -- a =w loadl b
+                 | AddW (Int, Int, Int)     -- a =w add b, c
+                 | AddL (Int, Int, Int)     -- a =l add b, c
+                 | SubW (Int, Int, Int)     -- a =w sub b, c
+                 | SubL (Int, Int, Int)     -- a =l sub b, c
+                 | Call0 (Int, String)      -- a =w call $b()
+                 | Call1 (Int, String, Int) -- a =w call $b(w c)
+                 | Jmp (Int)                -- jmp a
+                 | Jnz (Int, Int, Int)      -- jnz a, @loop.b, @loop.c
+                 | Label (Int)              -- @loop.a
+  deriving (Eq)
+```
+
+It looks a bit like assembly, isn't it?
+
+=> https://c9x.me/compile/doc/il.html	QBE Intermediate Language
+
+The compile function itself it's not hard, but it's a bit long.  It uses two counters, one for the temporaries and one for the loops names, plus two extra stacks, and returns a stream of Instruction.
+
+Remembering that I said not to take this as an example on how to write Haskell, let's see the compiler in its glory.
+
+```the compile' routine
+-- the pointer to the current cell is always in the %.1 temporary
+cell = 1
+
+compile' :: Int -> Int -> [AST] -> [Int] -> [Instruction]
+compile' n h ((x:xs):ys) trail =
+  case x of
+    Inc -> LoadL(n+1, cell)  :
+           LoadW(n+2, n+1)   :
+           AddW(n+3, n+2, 1) :
+           StoreW(n+3, n+1)  :
+           compile' (n+3) h (xs:ys) trail
+```
+
+As a side note, one of the things that I had troubles wrapping my head around was how to manage the temporaries and the pointers.  Take how Inc is compiled: it first loads the pointer from the intermediary and then dereferences it, because you can't directly dereference the address stored in an intermediary as far as I've understood.
+
+The compile' function has always a recursive call at the end: the idea is to leverage as much as possible on the tail call optimizations that GHC should do, turning this into a loop that produces a stream.
+
+```compiler' continuation
+    Dec -> ...
+    ShiftLeft -> LoadL(n+1, cell)  :
+                 SubL(n+2, n+1, 4) :
+                 StoreL(n+2, cell) :
+                 compile' (n+2) h (xs:ys) trail
+    ShiftRight -> ...
+    Input -> Call0(n+1, "getchar") :
+             LoadL(n+2, cell)      :
+             StoreW(n+1, n+2)      :
+             compile' (n+2) h (xs:ys) trail
+    Output -> LoadL(n+1, cell)           :
+              LoadW(n+2, n+1)            :
+              Call1(n+3, "putchar", n+2) :
+              compile' (n+3) h (xs:ys) trail
+    Loop (ast) -> Label(h)           :
+                  LoadL(n+1, cell)   :
+                  LoadW(n+2, n+1)    :
+                  Jnz(n+2, h+1, h+2) :
+                  Label(h+1)         :
+                  compile' (n+3) (h+3) (ast:(xs:ys)) (h:trail)
+```
+
+The loop is the most complex part.  When I'm encountering a loop I'm pushing it's body into the AST stack, so that the recursive call will start compiling the body.  I'm using the integer stack to push the label number.
+
+```the two other cases for the compile' function
+compile' n h ([]:ys) (t:ts) = Jmp(t) : Label(t+2) : compile' n h ys ts
+compile' _ _ _ _ = []
+```
+
+When the AST at the top of the stack is empty, it generates the code to end the loop and compiles the rest of the stack recusively.
+
+Like I did for the parser, also for the compiler I wrote a small frontend for it, so it's simpler to call it:
+
+```the compile function
+compile ast = compile' 1 1 [ast] []
+```
+
+Let's see if it works:
+
+```ghci transcription
+*Main> compile <$> (parse $ tokenize "++")
+Right [ LoadL (2,1)
+      , LoadW (3,2)
+      , AddW (4,3,1)
+      , StoreW (4,2)
+      , LoadL (5,1)
+      , LoadW (6,5)
+      , AddW (7,6,1)
+      , StoreW (7,5) ]
+```
+
+(reformatted just for readability)
+
+<$> is just a built-in function that "pipes" the AST to the compile function if parse succeeds, or returns the error otherwise.
+
+cproc was incredibly helpful to understand how to translate certain patterns into the QBE IL: I've often compiled some small C programs with cproc-qbe to see what code was produced.
+
+=> https://sr.ht/~mcf/cproc/ cproc: small C11 compiler based on QBE
+
+The compiler isn't finished yet thought.  The QBE instructions need to be wrapped in a main function, and we need to somehow print them.  Let's start by implementing the Show typeclass for Instruction:
+
+```implementing Show for Instruction
+instance Show Instruction where
+  show x =
+    case x of
+      StoreW (a, b)    -> printf "    storew %%.%d, %%.%d" a b
+      StoreL (a, b)    -> printf "    storel %%.%d, %%.%d" a b
+      ...
+      Label (a)        -> printf "@loop.%d" a
+```
+
+and then printing the prologue of the main function, followed by the body of the compiled program, followed by the epilogue:
+
+```the compileProg functions and plus helpers
+prologue = "export function w $main() {\n" ++
+           "@start\n" ++
+           "    %.1 =l alloc8 8\n" ++
+           "    storel $tape, %.1"
+epilogue = "    ret 0\n" ++
+           "}\n" ++
+           "data $tape = align 8 { z 4096 }"
+
+compileProg program = do
+  let t = parse $ tokenize program in
+    case t of
+      Right ast -> do putStrLn prologue
+                      mapM_ print (compile ast)
+                      putStrLn epilogue
+      Left err  -> error err
+```
+
+Haskell is a language that really takes at heart the idea of avoiding side effects as much as possible.  They're not difficult to perform however, just a bit awkward to do sometimes, or at least it seems so coming from other languages.  Let's take the task of printing a list of values:
+
+```printing a list of values
+mapM_ print list
+```
+
+The mapM_ function has the following type signature
+
+```mapM_ type signature
+mapM_ :: (Foldable t, Monad m) => (a -> m b) -> t a -> m ()
+```
+
+It takes a function that does something with a value and returns a monad and applies it to a list (really a "foldable").  This is just perfect for printing streams of values, since the print function returns an "IO ()" monad.
+
+By wrapping the whole thing in a do-block we can "join" these multiple side effects (i.e. printing) into a single IO monad.
+
+The last thing to do is to implement a main function.  I tried to use getopt in Haskell but failed badly to do so, and I don't really need any flag: just read the file given (or standard input) and print the QBE IL on the standard output!
+
+```the main function
+parseArgs [] = getContents
+parseArgs path = concat `fmap` mapM readFile path
+
+main = E.getArgs >>= parseArgs >>= compileProg
+```
+
+(as a side note, among the various "ASCII art"-named functions in Haskell >>= is the one I like the most)
+
+I'll leave as an exercise for the reader the task of adding the bounds check to the shifts.
+
+Having a separate tokenizer and parser made, in this specific case, the compiler slighter complex: usually I would have just done pattern matching on the input and produced the QBE output from it.  In a follow up post thought I'd like to explore some optimization that bfc could apply, so maybe having an AST could become an advantage!

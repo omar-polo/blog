@@ -1,0 +1,42 @@
+=> //telescope.omarpolo.com Telescope
+
+The 0.7 release is named after “Via Paolo Fabbri 43”, a song by Francesco Guccini.  It's a song about:
+
+> una canzone piena di cose e di scherzi, e l'ironia è soprattutto su di me, sui miei “se fossi, se facessi” che a volte forse sono solo scuse per non essere e non fare.  La canzone vuole essere un invito a essere di più e a fare di più.
+
+(in English)
+> a song full of things and jokes, and the irony is mostly about me, about my “if I were, if I did” that sometimes are just excuses for not being and not doing.  The song wants to be an invite at being more and doing more.
+
+I think it's quite appropriate for this release: I've been thinking about a cache scheme that I like for something like 5 months now, but without doing anything at all until the other day.  It took just two evenings to sit down and implement a simple in-memory cache store with a simple time-based expire strategy.
+
+In the near future I'd like to explore the idea of keeping a persistent cache on disk.  I think it's incredibly cool to build your own offline version of the geminispace/gopherspace when you browse with Telescope, and it allows all kind of interesting stuff.  It becomes possible to browse offline, or read pages even when the capsule is down, and allows to do fast searches across cached pages (have you ever thought “last week I was reading an interesting article about, if only I could find it again”?)  I think solderpunk wrote something about it, I’m curious to see how it works in practice.
+
+
+## Changelog
+
+Note: the format of the session file was extended.  Old session file will be opened fine, but older telescope version won't be able to correctly handle session files generated after v0.7.
+
+
+New features:
+
+* caching: telescope will keep a in-memory copy of the visited page for some time to speed up history navigation.  See also the new command `cache-info'.
+* persistent tab history: telescope will remember the full history for each tab across sessions.
+* re-open closed tabs (even across sessions!)  The `u' key is now bound to `tab-undo-close' by default.
+* allow to customise the space after the end of the buffer.  By default telescope now renders a vi-like tilde fringe “~”, but it's fully customisable using the new `line.fringe' style identifier.  See also the new setting `fringe-ignore-offset'.
+
+Improvements:
+
+* ask before quitting telescope.
+* execute-extended-command: execute the selected command on RET.
+* bump default fill-column to 120.
+* bind `del' (backspace) to previous-page.  Suggested by Florian, thanks!
+* add --colours as --color alias.  Suggested by Florian.
+
+Bug fixes:
+
+* fixed crash on --colors.  Reported by Florian, thanks!
+* don't push the current url to the history *twice* at startup.
+
+Breaking changes:
+
+* variable `set-title' renamed to `update-title'.  The old name will still be supported for a while to ease backwards compatibility.
