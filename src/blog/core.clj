@@ -134,16 +134,17 @@
         (viewfn tag posts)))
 
 (defn render-rss []
-  (let [gemposts (->> @posts
+  (let [ps (filter #(not (:draft? %)) @posts)
+        gemposts (->> ps
                       (filter gemini-post)
                       (map #(dissoc % :body)))]
     (spit (str "resources/out/gemini/rss.xml")
           (rss/feed #(str "gemini://gemini.omarpolo.com/post/" % ".gmi")
                     gemposts))
     (spit (str "resources/out/gemini/rss.gmi")
-          (gemini/feed-page gemposts)))
-  (spit (str "resources/out/http/rss.xml")
-        (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") @posts)))
+          (gemini/feed-page gemposts))
+    (spit (str "resources/out/http/rss.xml")
+          (rss/feed #(str "https://www.omarpolo.com/post/" % ".html") ps))))
 
 (defn generate-robots-txt []
   (spit "resources/out/gemini/robots.txt" "# block some bots from accessing gempkg/man
@@ -237,8 +238,10 @@ Disallow: /cgi/man/
 (defn deploy
   "Copy the files to the server"
   []
-  (sh "rsync" "-r" "--delete" "resources/out/http/"   "op:sites/www.omarpolo.com/")
-  (sh "rsync" "-r" "--delete" "resources/out/gemini/" "op:gemini/gemini.omarpolo.com"))
+  (sh "openrsync" "--rsync-path=openrsync" "-r" "--del"
+      "resources/out/http/"   "antartica:/var/www/www.omarpolo.com/")
+  (sh "openrsync" "--rsync-path=openrsync" "-r" "--del"
+      "resources/out/gemini/" "antartica:/var/gemini/gemini.omarpolo.com"))
 
 (defn antenna
   "Ping antenna"
@@ -270,6 +273,10 @@ Disallow: /cgi/man/
     (local-deploy))
   (serve)
   (stop-jetty)
+
+  (let [attrs {:href "gemini://it.omarpolo.com/foo.gmi"}]
+    (and (re-matches #".*\.gmi" (:href attrs))
+         (not (re-matches #"gemini://.*" (:href attrs)))))
 
   (do
     (deploy)
