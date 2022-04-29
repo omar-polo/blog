@@ -1,4 +1,20 @@
-[{:title    "I wrote a music player"
+[{:title    "A Brainfuck Compiler"
+  :short    "Finally playing with QBE!"
+  :slug     "bfc-intro"
+  :date     "2022/04/28"
+  :tags     #{:haskell :literate-programming :parsing :QBE}
+  :gemtext? true
+  :music    {:title "The Pretender"
+             :by "Foo Fighters"}}
+ {:title    "Experiments in writing a full text search engine"
+  :short    "full text search ain't black magic"
+  :slug     "fts-experiments"
+  :date     "2022/04/14"
+  :tags     #{:c :fts}
+  :gemtext? true
+  :music    {:title "Weird Fishes / Arpeggi"
+             :by    "Radiohead"}}
+ {:title    "I wrote a music player"
   :short    "experiments that I end up liking"
   :slug     "amused"
   :date     "2022/02/19"
