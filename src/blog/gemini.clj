@@ -21,7 +21,7 @@
     [:text ""]
     [:text ""]
     [:text ""]
-    [:text "-- text: CC-BY-SA-4.0; code: public domain unless specified otherwise"]
+    [:text "-- text: CC0 1.0; code: public domain (unless specified otherwise)"]
     [:text "For comments, write at < blog at omarpolo dot com > or @op@bsd.network in the fediverse."]
     [:link "//git.omarpolo.com/blog/" "Capsule proudly assembled with Clojure"])))
 
