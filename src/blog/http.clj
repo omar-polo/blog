@@ -44,7 +44,7 @@
     (header d)
     [:main body]
     [:footer
-     [:p "text: CC0 1.0; code: public domain (unless specified otherwise)"]
+     [:p "text: CC0 1.0; code: public domain (unless specified otherwise).  No copyright here."]
      [:p "Blog proudly generated with "
       [:a {:href "https://git.omarpolo.com/blog/"}
        [:code "(clojure)"]]]]
