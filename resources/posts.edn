@@ -1,4 +1,20 @@
-[{:title    "A Brainfuck Compiler"
+[{:title    "plass(1) first public release"
+  :short    "Manage Passwords"
+  :slug     "plass-0.1"
+  :date     "2022/10/02"
+  :tags     #{:perl :unix}
+  :gemtext? true
+  :music    {:title "Cielo Super Acceso"
+             :by "Verdena"}}
+ {:title    "Running gotwebd behind nginx"
+  :short    "Wanna try gotwebd but you're stuck on a non-OpenBSD system? ;)"
+  :slug     "gotwebd-behind-nginx"
+  :date     "2022/09/08"
+  :tags     #{:got :linux}
+  :gemtext? true
+  :music    {:title "Hell on Earth"
+             :by "Iron Maiden"}}
+ {:title    "A Brainfuck Compiler"
   :short    "Finally playing with QBE!"
   :slug     "bfc-intro"
   :date     "2022/04/28"
