@@ -1,0 +1,93 @@
+The latest release of the Game of Trees control version systems includes a brand-new repository web interface: gotwebd.  It was written by tracey@ and it's going to replace the "old" CGI script, also written by him.
+
+=> https://git.omarpolo.com/	My gotwebd instance
+=> https://gameoftrees.org/	Game of Trees (got) website
+
+Disclaimer: I've contributed a bit to got and gotwebd, so my opinions may be a little biased.  You have been warned!
+
+gotwebd become very quickly my favourite git repository web interface.  It's a FastCGI application simple to run (so not a CGI script), it's decently fast and, why not, I like the web interface: it's clean and does greatly its job.  Being part of the Game of Trees project and developed by OpenBSD developers means that it's also written with security in mind: it is priviledge separated and operates in a chroot by default.  The code is also quite a pleasure to read  (well, if you glance over the bits that generates the HTML!)
+
+When I migrated my web server to OpenBSD some months ago (finally!) I decided to move from cgit to gotwebd too.  To be fair, initially it wasn't a pleasure because, as gotwebd was heavily work in progress, there wasn't proper documentation, there were some bugs and so on.  Lately however, with the 0.75 release approaching, the man pages were written and gotwebd become more stable too.  I don't regret the decision to move to it and I'm rather happy now.
+
+If you're using OpenBSD running it is a no-brainer: on the latest -CURRENT you'll find a ‘gotwebd’ package that includes the rc.d(8) script and the instructions on how to run it with httpd(8) in the manual.  What's the situations for other systems?
+
+Since gotwebd is a fastcgi application it's actually rather easy to run it on a plethora of systems and with different configurations.  In particular, running it on linux or mac is incredibly easy thanks to the work done by Thomas Adams in the portable branch.
+
+However, consider this post a tech-preview for the moment because got-portable 0.75 still hasn't been released.  So, while everything works, some small extra manual step are needed.  Furthermore, I'll focus in particular on nginx since, except for OpenBSD' httpd(8), is the only webserver I know how to use.  I assume that running gotwebd behind Apache' httpd, lighttpd, caddy or others is not difficult.
+
+So, building got from source is easy and painless: got-portable uses the GNU autotools so it's just the usual spell.  This will download, build and install the whole got toolbox: the ‘got’ and ‘gotadmin’ cli, the ‘tog’ ncurses interface and, of course, gotwebd!
+
+``` how to clone, compile and install the whole got toolbox
+$ git clone https://git.gameoftrees.org/got-portable.git
+$ cd got-portable
+$ ./autogen.sh
+$ ./configure
+$ make
+$ sudo make install
+```
+
+The web assets (the stylesheet and the images) for the moment needs to be copied manually in a directory served by nginx.  In my case I chose /var/www to mirror the OpenBSD setup.
+
+```
+$ sudo mkdir -p /var/www
+$ sudo cp -R gotwebd/files/htdocs/gotwebd/ /var/www/
+```
+
+with an official release of got-portable this step may be integrated as part of ‘make install’.
+
+Gotwebd needs a simple configuration file to work:
+
+```
+# /etc/gotwebd.conf
+
+chroot "/"
+
+server "git.example.com" {
+	repos_path "/path/to/my/git/repositories/"
+	site_name "op projects"
+
+	# listen on this socket
+	unix_socket_name "/var/run/gotwebd.sock"
+	# or on a local port
+	#listen on localhost port 9000
+}
+```
+
+There are some parameter that can be tweaked, refer to the gotwebd.conf(5) manual page the details.
+
+=> https://gameoftrees.org/gotwebd.conf.5.html gotwebd.conf(5)
+
+Disabling the chroot is not a great idea but otherwise it requires some further set-up (copying the libexec' helpers statically linked inside the chroot and messing around a bit with how gotwebd executes them.)  These will be eventually fixed by the time an official release of the got-portable branch will be cut, so this is just a temporary measure.
+
+The only missing piece is the nginx configuration, which is quite straightforward too!  Since I'm testing this on alpine linux (in a vmd(8) virtual machine), I added the following in /etc/nginx/http.d/default.conf.  In other distros the configuration might be in a different place.
+
+```
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	root /var/www/gotwebd/;
+
+	server_name git.example.com;
+
+	location = / {
+		include /etc/nginx/fastcgi_params;
+		fastcgi_pass unix:/var/run/gotwebd.sock;
+		# or
+		#fastcgi_pass 127.0.0.1:9000;
+	}
+}
+```
+
+That's it!  Now launch gotwebd
+
+```
+$ sudo gotwebd -dv
+```
+
+you might want to write some sort of service file for your distribution, or at least run it inside a tmux session.
+
+The result?
+
+=> /img/alpine-gotwebd.png Screenshot of firefox on the gotwebd index page.
+
+awesome, isn't it? :)
