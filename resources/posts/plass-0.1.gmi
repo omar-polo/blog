@@ -1,0 +1,40 @@
+TL;DR plass(1) is a NIH pass(1), but I like it more!
+
+Many many moons ago, so many that I don’t remember the details, I was trying to hack something with pass(1) and got really fed up with it.  It was my second password manager, with keepassxc being the first, and I really loved the idea behind it but I started to hate the interface.
+
+I remember that I found the output of the various pass commands difficoult to parse programmatically; having to bypass it (for example by means of find(1) seems wrong.)  When I’m using a CLI tool, I want a good output I can further hack on.
+
+For those who don’t know, pass(1) is a simple password manager.  It stores passwords in a directory tree rooted at ‘~/.password-store’ where the passwords are files encrypted with GPG.  How to organize things is up to you; for example if I have to save the password for the website ‘example.com’ where my username is ‘foo’ I’d probably persist it as ‘www/example.com/foo’.
+
+So, dirven by my scriptability problem (and also the fact that I wanted to use got(1) instead of git(1)) I wrote mine.  The name?  It’s a “perl pass”, so “plass”!  (God, I’m awful at picking names...)
+
+=> https://projects.omarpolo.com/plass.html plass(1) web page
+
+What I’m really happy about plass is that I started with a set of commands that I thought they were “minimal” and managed to remove stuff as I went on in the implementation.
+
+> Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away.
+
+The command set of plass is indeed very minimal and it mimicks a bit the other well-known tools, so it should be pretty self-explanatory
+
+* ‘plass cat entries...’
+* ‘plass find [pattern]’
+* ‘plass gen entry’
+* ‘plass mv from to’
+* ‘plass rm entries...’
+* ‘plass tee entry’
+
+The only thing that I may remove in the future is the ‘gen’ (generate password) command.  I think that it may be better to reuse an existing password generator and use ‘plass tee’ to persist the password:
+
+```
+$ cool-password-generator | plass tee www/example.com | clip
+```
+
+Otherwise, the command set of ‘plass’ is very minimal: it provides a mean to manage sets of encrypted files and nothing more.  It doesn’t have flags to copy something from or to the clipboard, or to do other fancy things.
+
+=> https://projects.omarpolo.com/plass.1.html plass(1) man page
+
+One small perk is that it implicitly uses got(1) to track changes to the file set, so changes are automatically committed to a git repository.  I think it’s cool, and being able to create branches was really helpful during the development and testing of the utility.
+
+At the moment plass is completely compatible with pass.  If you’re using pass but want to give plass a try you just need to re-check out ~/.password-store with got(1) and plass should work out of the box.  If you want to go back, re-re-check out your pass repo with git to go back to pass(1).
+
+However, in the future, I’d like to change the encryption from GPG to (maybe) age or signify.
