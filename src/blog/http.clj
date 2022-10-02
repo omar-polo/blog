@@ -34,6 +34,7 @@
    [:head
     [:meta {:charset "utf8"}]
     [:meta {:name "viewport", :content "width=device-width, initial-scale=1"}]
+    [:meta {:http-equiv "Onion-Location" :content "http://n556bsewix6wn6ntegcuo74543nfbl25gfbzrcwvv5w52367t4csy3ad.onion"}]
     [:link {:rel "shortcut icon", :href "/favicon.ico"}]
     [:link {:rel "alternative" :type "application/rss+xml" :href "https://www.omarpolo.com/rss.xml"}]
     (when description
