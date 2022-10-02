@@ -44,24 +44,23 @@
      [:link (str "/post/" slug ".gmi") (str (time/fmt-iso8601 date) " - " title)]
      [(if full? :header-1 :header-2) title])
    (if full?
-     [:text ""]
      [:quote short])
-   (when music
-     [:text (str "Written while listening to “" (:title music) "”"
-                      (when-let [by (:by music)]
-                        (str " by " by))
-                      ".")])
    (when full?
-     [:text (str "Published: " (time/fmt-iso8601 date))])
-   [:text "Tagged with:"]
-   (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
-        (sort tags))
-   (when xkcd
-     [:link (str "https://xkcd.com/" xkcd) (format "Relevant XKCD – #%d" xkcd)])
-   (when full?
-     (list [:text ""]
-           (gemtext/parse body)))
-   [:text ""]))
+     (list
+      (when music
+        [:text (str "Written while listening to “" (:title music) "”"
+                    (when-let [by (:by music)]
+                      (str " by " by))
+                    ".")])
+      [:text (str "Published: " (time/fmt-iso8601 date))]
+      [:text "Tagged with:"]
+      (map #(vector :link (str "/tag/" (name %) ".gmi") (str "#" (name %)))
+           (sort tags))
+      (when xkcd
+        [:link (str "https://xkcd.com/" xkcd) (format "Relevant XKCD – #%d" xkcd)])
+      [:text ""]
+      (gemtext/parse body)
+      [:text ""]))))
 
 (defn home-page [{:keys [posts has-next has-prev nth]}]
   (with-default-template
@@ -77,6 +76,7 @@
     [:text ""]
     (map (partial post-fragment {:title-with-link? true})
          posts)
+    [:text ""]
     (when has-prev
       [:link (str "/"
                   (if (= (dec nth) 1)
