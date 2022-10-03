@@ -12,7 +12,7 @@
     (for [post posts]
       (let [{:keys [title date slug]} post
             url (str "gemini://gemini.omarpolo.com/post/" slug ".gmi")]
-        [:link url (str (time/fmt-iso8601 date) " - " title)])))))
+        [:link url (str (time/fmt-iso8601 date) " " title)])))))
 
 (defn with-page [_ & body]
   (gemtext/unparse
@@ -21,9 +21,7 @@
     [:text ""]
     [:text ""]
     [:text ""]
-    [:text "-- text: CC0 1.0; code: public domain (unless specified otherwise).  No copyright here."]
-    [:text "For comments, write at < blog at omarpolo dot com > or @op@bsd.network in the fediverse."]
-    [:link "//git.omarpolo.com/blog/" "Capsule proudly assembled with Clojure"])))
+    [:text "-- text: CC0 1.0; code: public domain (unless specified otherwise).  No copyright here."])))
 
 (defn with-default-template [_ & body]
   (with-page {}
@@ -41,7 +39,7 @@
    {:keys [title date slug tags short body toot music xkcd] :as post}]
   (list
    (if title-with-link?
-     [:link (str "/post/" slug ".gmi") (str (time/fmt-iso8601 date) " - " title)]
+     [:link (str "/post/" slug ".gmi") (str (time/fmt-iso8601 date) " " title)]
      [(if full? :header-1 :header-2) title])
    (if full?
      [:quote short])
@@ -68,10 +66,6 @@
     [:text "Welcome to my gemlog!  Sometimes I remember that I have a blog and post something here.  My main interests are computer science, operating systems (BSDs in particular), programming languages (especially C, Go, LISP in its various incarnations).  I also have an Italian capsule where I write about more casual stuff:"]
     [:link "gemini://it.omarpolo.com" "l'angolo di yumh"]
     [:text ""]
-    [:text "Some Gemini services on this capsule:"]
-    [:link "/cgi/man"    "Look up a manpage"]
-    [:link "/cgi/gempkg" "Browse the OpenBSD ports tree"]
-    [:text ""]
     [:header-2 "Recent posts"]
     [:text ""]
     (map (partial post-fragment {:title-with-link? true})
@@ -86,15 +80,15 @@
        "Newer Posts"])
     (when has-next
       [:link (str "/" (inc nth) ".gmi")
-       "Older Posts"])))
+       "Older Posts"])
+    [:text ""]
+    [:text "For comments, write at < blog at omarpolo dot com > or @op@bsd.network in the fediverse."]))
 
 (defn custom-page [{:keys [body]}]
   (apply with-default-template (gemtext/parse body)))
 
 (defn post-page [{:keys [title short] :as post}]
   (with-page {}
-    [:link ".." "↩ back to the index"]
-    [:text ""]
     (post-fragment {:full? true}
                    post)))
 
