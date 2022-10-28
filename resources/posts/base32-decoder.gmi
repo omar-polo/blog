@@ -1,0 +1,64 @@
+Edit 2022-10-28: b32decode was slightly improved in its interface, it's a bit easier to use now: the ‘s’ parameter can be const and there's no need to pass an explicit length.
+
+For reasons behind the scope of this entry, I had to decode some data encoded in base32.  After an embarrassing moment where i used EVP_DecodeBlock from libcrypto because apparently I can’t read (it’s a base64, not 32, decoder), I discovered that libcrypto doesn’t provide a base32 decoder.  Probably some other popular library provides it, but since I was hacking in a project that only uses libc and libcrypto as dependencies, I wrote one.
+
+Decoding base32-encoded data is not difficult, the encoding scheme is very, very simple, so why bother writing a post about it?  Well, before writing my own decoder I searched on the web if there was something I could stole and, hum, I didn’t like what I found, too over engineered.  I haven’t looked too much, so apologize if I’ve missed your sexy decoder.
+
+=> https://www.rfc-editor.org/rfc/rfc3548 RFC3548
+
+RFC3548 defines the base16, 32 and 64 data encoding and is quite simple to read.  Base32 uses an alphabet of 32 printable characters, encoding 5 bit of data in one byte (for the ASCII character.)  These 32 characters are just the English letters and the numbers from 2 to 7 inclusive.
+
+``` The b32c routine decodes a single character
+static int
+b32c(unsigned char c)
+{
+	if (c >= 'A' && c <= 'Z')
+		return (c - 'A');
+	if (c >= '2' && c <= '7')
+		return (c - '2' + 26);
+	errno = EINVAL;
+	return (-1);
+}
+```
+
+Since it uses one byte to store five bits, the decoder needs to read eight bytes of encoded data to produce five bytes of output.  If at the end we have less than eight bytes, assume it’s zero.  RFC3548 specifies the ‘=’ character to use as padding to always reach a multiple of eight, but in my application the padding character is not used, so I’m not considering that case; should this become a problem, I can just strip the padding characters from the end of the string before passing it to the decoder.
+
+``` The b32decode routine
+static size_t
+b32decode(const char *s, char *q, size_t qlen)
+{
+	int	 i, val[8];
+	char	*t = q;
+
+	while (*s != '\0') {
+		memset(val, 0, sizeof(val));
+		for (i = 0; i < 8; ++i) {
+			if (*s == '\0')
+				break;
+			if ((val[i] = b32c(*s)) == -1)
+				return (0);
+			s++;
+		}
+
+		if (qlen < 5) {
+			errno = ENOSPC;
+			return (0);
+		}
+		qlen -= 5;
+
+		*q++ = (val[0] << 3) | (val[1] >> 2);
+		*q++ = ((val[1] & 0x03) << 6) | (val[2] << 1) | (val[3] >> 4);
+		*q++ = ((val[3] & 0x0F) << 4) | (val[4] >> 1);
+		*q++ = ((val[4] & 0x01) << 7) | (val[5] << 2) | (val[6] >> 3);
+		*q++ = ((val[6] & 0x07) << 5) | val[7];
+	}
+
+	return (q - t);
+}
+```
+
+It first reads eight byte from the input string and decodes them, assuming zero if less was available.  Then, it assembles the value in the output buffer.  And that’s it!  The return value is the number of bytes decoded, or zero upon an error.
+
+Depending on the type of application you may want to strip blanks and/or trailing padding ‘=’ characters from the end.
+
+I hereby release this all the code shown in this post into the public domain, hoping it could be useful to someone else.
