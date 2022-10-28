@@ -1,4 +1,10 @@
-[{:title    "plass(1) first public release"
+[{:title    "A base32 decoder"
+  :short    "decodin' five bits at a time"
+  :slug     "base32-decoder"
+  :date     "2022/10/20"
+  :tags     #{:c}
+  :gemtext? true}
+ {:title    "plass(1) first public release"
   :short    "Manage Passwords"
   :slug     "plass-0.1"
   :date     "2022/10/02"
