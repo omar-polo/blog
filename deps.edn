@@ -1,9 +1,8 @@
-{:deps {hiccup               {:mvn/version "1.0.5"}
-        ring                 {:mvn/version "1.8.0"}
-        commonmark-hiccup    {:mvn/version "0.1.0"}
-        org.clojure/data.xml {:mvn/version "0.2.0-alpha6"}
-        com.omarpolo/gemtext {:mvn/version "0.1.5"}
-        com.omarpolo/gemini  {:mvn/version "0.2.0"}}
+{:deps {hiccup/hiccup                       {:mvn/version "1.0.5"}
+        commonmark-hiccup/commonmark-hiccup {:mvn/version "0.1.0"}
+        org.clojure/data.xml                {:mvn/version "0.2.0-alpha6"}
+        com.omarpolo/gemtext                {:mvn/version "0.1.5"}
+        com.omarpolo/gemini                 {:mvn/version "0.2.0"}}
 
  :paths ["classes" "src" "resources"]
 

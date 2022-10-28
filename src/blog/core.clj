@@ -7,10 +7,7 @@
    [blog.time :as time]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.java.shell :refer [sh]]
-   [ring.adapter.jetty :as jetty]
-   [ring.middleware.content-type :refer [wrap-content-type]]
-   [ring.middleware.resource :refer [wrap-resource]])
+   [clojure.java.shell :refer [sh]])
   (:import (java.io File)
            (java.nio.file Files Paths))
   (:gen-class))
@@ -211,19 +208,6 @@ Disallow: /cgi/man/
             :let [[tag posts] t]]
       (render-tag tagfn proto ext (name tag) (filter ffn posts)))))
 
-(def j (atom nil))
-
-(defn serve
-  "Serve a preview"
-  []
-  (reset!
-   j
-   (jetty/run-jetty (-> (fn [_] {:status 404, :body "not found"})
-                        (wrap-resource "out")
-                        (wrap-content-type))
-                    {:port 3030
-                     :join? false})))
-
 (defn clean
   "clean the output directory"
   []
@@ -248,10 +232,6 @@ Disallow: /cgi/man/
   []
   (net-gemini/ping-antenna "gemini://gemini.omarpolo.com"))
 
-(defn stop-jetty []
-  (.stop @j)
-  (reset! j nil))
-
 (defn -main [& actions]
   (load-posts!)
   (load-pages!)
@@ -272,7 +252,6 @@ Disallow: /cgi/man/
     (build)
     (local-deploy))
   (serve)
-  (stop-jetty)
 
   (let [attrs {:href "gemini://it.omarpolo.com/foo.gmi"}]
     (and (re-matches #".*\.gmi" (:href attrs))
