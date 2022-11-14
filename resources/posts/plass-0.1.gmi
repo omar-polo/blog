@@ -37,4 +37,4 @@ One small perk is that it implicitly uses got(1) to track changes to the file se
 
 At the moment plass is completely compatible with pass.  If you’re using pass but want to give plass a try you just need to re-check out ~/.password-store with got(1) and plass should work out of the box.  If you want to go back, re-re-check out your pass repo with git to go back to pass(1).
 
-However, in the future, I’d like to change the encryption from GPG to (maybe) age or signify.
+However, in the future, I’d like to change the encryption to something different to gpg.
