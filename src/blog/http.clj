@@ -128,6 +128,9 @@
      [:a {:href "https://bsd.network/@op"
           :rel "me"}
       "@op@bsd.network"] "."]
+    [:p "I also have an Italian blog where I write about more casual stuff: "
+     [:a {:href "https://it.omarpolo.com"}
+      "https://it.omarpolo.com"]]
     (map (partial post-fragment {:title-with-link? true})
          posts)
     [:nav.post-navigation
