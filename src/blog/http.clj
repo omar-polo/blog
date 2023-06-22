@@ -19,7 +19,7 @@
      [:ul
       (link-item {:url "/", :text "Home"})
       (link-item {:url "/tags.html", :text "All Tags"})
-      (link-item {:url "/pages/projects.html", :text "Projects"})
+      (link-item {:url "//projects.omarpolo.com", :text "Projects"})
       #_(link-item {:url "/dots", :text "dotfiles"})
       (link-item {:url "gemini://gemini.omarpolo.com" :text "gemini://"
                   :title "This website in the gemini space."})]]

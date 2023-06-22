@@ -30,7 +30,7 @@
     [:text ""]
     [:link "/" "Home"]
     [:link "/tags.gmi" "All Tags"]
-    [:link "/pages/projects.gmi" "Projects"]
+    [:link "https://projects.omarpolo.com" "Projects"]
     [:text ""]
     body))
 
