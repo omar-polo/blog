@@ -1,6 +1,4 @@
-[{:title "Projects"
-  :slug  "projects"}
- {:title "star-platinum - take control of your applications, one key at the time"
+[{:title "star-platinum - take control of your applications, one key at the time"
   :slug  "star-platinum"}
  {:title "gmid - fast, small and secure Gemini server"
   :slug  "gmid"}
