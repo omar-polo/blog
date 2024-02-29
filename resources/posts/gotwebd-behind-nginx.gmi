@@ -11,7 +11,7 @@ gotwebd become very quickly my favourite git repository web interface.  It's a F
 
 When I migrated my web server to OpenBSD some months ago (finally!) I decided to move from cgit to gotwebd too.  To be fair, initially it wasn't a pleasure because, as gotwebd was heavily work in progress, there wasn't proper documentation, there were some bugs and so on.  Lately however, with the 0.75 release approaching, the man pages were written and gotwebd become more stable too.  I don't regret the decision to move to it and I'm rather happy now.
 
-If you're using OpenBSD running it is a no-brainer: on the latest -CURRENT you'll find a ‘gotwebd’ package that includes the rc.d(8) script and the instructions on how to run it with httpd(8) in the manual.  What's the situations for other systems?
+If you're using OpenBSD running it is easy: on the latest -CURRENT you'll find a ‘gotwebd’ package that includes the rc.d(8) script and the instructions on how to run it with httpd(8) in the manual.  What's the situations for other systems?
 
 Since gotwebd is a fastcgi application it's actually rather easy to run it on a plethora of systems and with different configurations.  In particular, running it on linux or mac is incredibly easy thanks to the work done by Thomas Adams in the portable branch.
 
@@ -28,7 +28,7 @@ $ make
 $ sudo make install
 ```
 
-The web assets (the stylesheet and the images) for the moment needs to be copied manually in a directory served by nginx.  In my case I chose /var/www to mirror the OpenBSD setup.
+The web assets (the stylesheet and the images) need to be copied manually in a directory served by nginx.  In my case I chose /var/www to mirror the OpenBSD setup.
 
 ```
 $ sudo mkdir -p /var/www
