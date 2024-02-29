@@ -1,4 +1,43 @@
-[{:title    "A base32 decoder"
+[{:title    "A small template engine for C"
+  :short    ""
+  :slug     "template"
+  :date     "2024/02/29"
+  :tags     #{:c}
+  :gemtext? true
+  :music    {:title "Il suicidio del samurai"
+             :by    "Verdena"}
+  :xkcd     327}
+ {:title    "gmid 2.0"
+  :short    "finally at least"
+  :slug     "gmid-2.0"
+  :date     "2024/01/11"
+  :tags     #{:gemini :gmid}
+  :gemtext? true
+  :music    {:title "Lady Stardust"
+             :by "David Bowie"}}
+ {:title    "CGI scripts: simple vs easy"
+  :short    "simple ain't easy"
+  :slug     "cgi-simple-vs-easy"
+  :date     "2023/08/29"
+  :tags     #{:gemini :gmid}
+  :gemtext? true
+  :music    {:title "La Donna Cannone"
+             :by "Francesco De Gregori"}}
+ {:title    "gmid 2.0 first alpha"
+  :short    "How to sleep well at night"
+  :slug     "gmid-2.0-first-alpha"
+  :date     "2023/08/25"
+  :tags     #{:gemini :gmid}
+  :gemtext? true
+  :music    {:title "死んでるみたいに眠ってる"
+             :by "amazarashi"}}
+ {:title    "June 2023 Status Update"
+  :short    "catching up"
+  :slug     "2023-06-update"
+  :date     "2023/06/23"
+  :tags     #{:update :smtpd :gmid :got}
+  :gemtext? true}
+ {:title    "A base32 decoder"
   :short    "decodin' five bits at a time"
   :slug     "base32-decoder"
   :date     "2022/10/20"

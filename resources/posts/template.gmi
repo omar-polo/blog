@@ -1,0 +1,137 @@
+Let’s say, just for a moment, that you’re mad enough to write a web application in C.
+
+(I’m probably beyond salvation at this point, but I like C, it’s my favourite programming language, and I like to hack on fun things in my limited spare time.)
+
+At some point you have to output the HTML somehow, and I guess the code will look like
+
+```
+printf("<!doctype>\n");
+printf("<html>\n");
+printf("...");
+```
+
+which is not great but tolerable.  There’s a catch though, you have to do some sort of escaping when outputting strings.  For example, consider:
+
+```
+printf("<p>Hello, <code>%s</code></p>", username);
+```
+
+it could inject custom HTML if ‘username’ is not sanitized, and often you can’t sanitize everything.  So, you have to write at least one escaping function, which will help making your outputting routines more messy, as well as to forgot to sanitize something somewhere.
+
+That’s why I started writing a small template engine: I wanted to clean up a small application I was writing, wanted something for a future project, and maybe clean up gotwebd’ a bit too in the process.
+
+My goals were:
+
+* simple, both to implement and to use.
+* no surprises (or at least as few as possible).
+* no run-time evaluation of the templates.
+
+The last point may sound strange, but I wanted to have the majority of the evaluation at compile-time (even earlier actually) and as few little moving parts as possible at runtime, to reduce the possible number of bugs.  It also semplifies the implementation, since C doesn’t have built-in data structures, so custom code is necessary to handle looping over lists, arrays, trees, hashes and whatnot.
+
+It’s actually useful to have dynamic templates, a few programs allows the user to specify local ones and this makes customization straightforward.  However, when considering pros and cons, I opted for the simpler thing.
+
+My projects tends to have a very limited number of dependencies, so they’re also easy to build, which in turns makes it easy for interested parties to keep their set of diffs over the original code for local modifications.
+
+There are various template languages out there, and for mine I took inspiration from Go’ templates, which are generally nice to work with.
+
+Truth to be told, I always find difficult to wrap my head around a few details of how Go’ templates work, in particular around having fragments in multiple files and inheritance, so for my template language I tried to build something even simpler.
+
+The idea is to only provide the most basic abstraction: a “block”.  Everything else can be built upon it.  A "block" is a fragment that outputs something.  For example, including another block can be done by "calling" the block inside another one, inheritance can be done by passing around blocks, etc.
+
+Each "block" then can be compiled down to a single C function, making calling into the templates easy, as well as calling other C functions from a template.
+
+But enough with the words, here’s an example:
+
+```
+{!
+#include <stdlib.h>
+#include "tmpl.h"
+!}
+
+{{ define base(struct template *tp, char *title) }}
+{!
+	char *foo = NULL;
+!}
+<!doctype html>
+<html>
+    <head>
+        <title>{{ title }}</title>
+    </head>
+    {!
+	foo = allocate_something();
+    !}
+    <body>
+        <h1>{{ title }}</h1>
+        {{ render body(tp, foo) }}
+    </body>
+</html>
+{{ finally }}
+{! free(foo); !}
+{{ end }}
+```
+
+Walking it line by line, the special construct ‘{!...!}’ is a literal fragment: it contains C code that is left as-is.  This is useful for including headers, defining variables, and any other sort of things that has to be done.
+
+The ‘define’ special construct creates a block, i.e. a function, and its argument.  There’s a fairly important limitation at the moment: every block needs to have a ‘tp’ variable of type ‘struct template’ defined.
+
+The rest is pretty straightforward, the HTML is outputted as-is, except for the other special construct ‘{{...}}’ which is used to interpolate a string, which is implicitly escaped, or to call another template with the special ‘render’ keyword.
+
+Since blocks are just function, instead of ‘render body()’ a small C fragment would have been enough, but including/calling blocks is done quite often so a handy syntax for it is fine.
+
+The ‘finally’ part is always executed and must sit at the end of the block, with the purpose of cleaning up any resource acquired inside the template.
+
+A few more “special” construct are also provided
+* ‘printf’, which is really ‘asprintf(3)’, for custom formatting.
+* ‘if’ / ‘elseif’ / ‘else’ for flow control.
+* ‘for’ and ‘while’ loops.
+* ‘variable | unsafe’ and ‘variable | urlescape’ to control the escaping.
+
+Adding other special syntax is easy since the template is a yacc grammar.
+
+And that’s it.  The template(1) compiler would then turn the previous example more or less into:
+
+```
+#include <stdlib.h>
+#include "tmpl.h"
+
+int base(struct template *tp, char *title) {
+	int tp_ret = 0;
+	char *foo = NULL;
+
+	if ((tp_ret = tp_write(tp, "...")) == -1)
+		goto err;
+	if ((tp_ret = tp_escape(tp, title)) == -1)
+		goto err;
+	if ((tp_ret = tp_write(tp, "...")) == -1)
+		goto err;
+	foo = allocate_something();
+	if ((tp_ret = tp_write(tp, "...")) == -1)
+		goto err;
+	if ((tp_ret = body(tp, foo)) == -1)
+		goto err;
+	if ((tp_ret = tp_write(tp, "...")) == -1)
+		goto err;
+ err:
+	free(foo);
+	return tp_err;
+}
+```
+
+I’ve omitted a few things and indented to make the code more readable.  The real output is a bit messier since it doesn’t have indentation and uses the ‘#line’ CPP directives to aid the debugger.
+
+Using this template engine requires two things:
+* compiling the template files with template(1), then use the generated C file inside your application
+* using the runtime “library” to initialize the template.
+
+At runtime, the template library requires a ‘write(2)’-like function and a buffer.  Except for the ‘printf’ special syntax, the template doesn’t allocate memory: it fills the buffer and occasionally call the given write function.
+
+(I’m calling it a library but it really is just a couple of functions used by the generated code)
+
+Another shortcoming of the current implementation is that blanks are stripped from the begin and end of line, as well as around the ‘{{...}}’ special constructs.  This was in part done to avoid having another special syntax like Go’s ‘{{- ... -}}’, and in part to automatically minimize the HTML.  The cons is that sometimes a space is really needed and so ‘{{" "}}’ has to be used as workaround.
+
+There’s not a “central” repository yet since it’s just bundled in a few projects (such as got, or galileo.)  Part of the idea is that, if needed, consumers can have their local patches.
+
+=> https://gameoftrees.org got
+=> https://git.omarpolo.com/?action=summary&path=galileo.git galileo
+
+So far I’ve wrote a few things using it.  Amusingly, the current total line count is exactly 3600.  Seems a perfect time to post about it :)
