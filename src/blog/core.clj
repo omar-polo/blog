@@ -92,7 +92,7 @@
                     :posts posts
                     :has-next true
                     :has-prev true})
-                 (partition-all 6 (filter ffn' @posts)))))
+                 (partition-all 10 (filter ffn' @posts)))))
 
 (defn fix-next-last
   "Fix the :has-prev/:has-next for the post pages.  This assumes
@@ -177,13 +177,7 @@ Disallow: /cgi/man/
   (copy-file "resources/favicon.ico" "resources/out/http/favicon.ico")
   (copy-file "resources/css/style.css" "resources/out/http/css/style.css"))
 
-(defn copy-cgi
-  "Copy cgi scripts to their place."
-  []
-  (copy-dir "cgi" "gemini"))
-
 (comment (build)
-         (copy-cgi)
          (count (filter gemini-post @posts))
          (gemini/post-page (first @posts))
          )
@@ -193,7 +187,6 @@ Disallow: /cgi/man/
   []
   (create-dirs!)
   (copy-assets)
-  (copy-cgi)
   (render-rss)
   (generate-robots-txt)
   (doseq [[proto ffn ext homefn postfn tagsfn tagfn pagefn]
@@ -262,6 +255,21 @@ Disallow: /cgi/man/
     (local-deploy))
 
   (antenna)
+
+  (sh "pwd")
+  (def my-fmter
+    (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))
+  (defn my-fmt [x]
+    (.format x my-fmter))
+  (-> @posts first :date my-fmt)
+
+  (doseq [post @posts]
+    (let [slug (:slug post)
+          ext (if (:gemtext? post) ".gmi" ".md")
+          date (my-fmt (:date post))]
+      (sh "cp"
+          (str "resources/posts/" slug ext)
+          (str "/home/op/w/newblog/posts/" date "-" slug ext))))
 
   (do
     (load-posts!)
