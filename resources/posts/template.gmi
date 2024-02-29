@@ -16,7 +16,7 @@ which is not great but tolerable.  There’s a catch though, you have to do some
 printf("<p>Hello, <code>%s</code></p>", username);
 ```
 
-it could inject custom HTML if ‘username’ is not sanitized, and often you can’t sanitize everything.  So, you have to write at least one escaping function, which will help making your outputting routines more messy, as well as to forgot to sanitize something somewhere.
+it could inject custom HTML if ‘username’ is not sanitized, and often you can’t sanitize everything in advance.  So, you have to write at least one escaping function, which will help making your outputting routines more messy, as well as to forgot to sanitize something somewhere.
 
 That’s why I started writing a small template engine: I wanted to clean up a small application I was writing, wanted something for a future project, and maybe clean up gotwebd’ a bit too in the process.
 
@@ -26,15 +26,15 @@ My goals were:
 * no surprises (or at least as few as possible).
 * no run-time evaluation of the templates.
 
-The last point may sound strange, but I wanted to have the majority of the evaluation at compile-time (even earlier actually) and as few little moving parts as possible at runtime, to reduce the possible number of bugs.  It also semplifies the implementation, since C doesn’t have built-in data structures, so custom code is necessary to handle looping over lists, arrays, trees, hashes and whatnot.
+The last point may sound strange, but I wanted to have the majority of the evaluation at compile-time (even earlier actually) and as few little moving parts as possible at runtime, to reduce the possible number of bugs.  It also simplifies the implementation: since C doesn’t have built-in data structures, custom code is necessary to handle looping over lists, arrays, trees, hashes and whatnot.
 
 It’s actually useful to have dynamic templates, a few programs allows the user to specify local ones and this makes customization straightforward.  However, when considering pros and cons, I opted for the simpler thing.
 
 My projects tends to have a very limited number of dependencies, so they’re also easy to build, which in turns makes it easy for interested parties to keep their set of diffs over the original code for local modifications.
 
-There are various template languages out there, and for mine I took inspiration from Go’ templates, which are generally nice to work with.
+There are various template languages out there, and for mine I took inspiration from Go templates, which are generally nice to work with.
 
-Truth to be told, I always find difficult to wrap my head around a few details of how Go’ templates work, in particular around having fragments in multiple files and inheritance, so for my template language I tried to build something even simpler.
+Truth to be told, I always find difficult to wrap my head around a few details of how Go templates work, in particular around having fragments in multiple files and inheritance, so for my template language I tried to build something even simpler.
 
 The idea is to only provide the most basic abstraction: a “block”.  Everything else can be built upon it.  A "block" is a fragment that outputs something.  For example, including another block can be done by "calling" the block inside another one, inheritance can be done by passing around blocks, etc.
 
