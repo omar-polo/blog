@@ -1,0 +1,9 @@
+This is mostly an announce more than a in-depth post.  I think I wrote all I wanted to say about the 2.0 release in a previous entry when I "released" a first alpha.
+
+=> /post/gmid-2.0-first-alpha.gmi gmid 2.0 first alpha
+
+Then I got distracted by many other things and time flew.  The only complain is that I haven't managed to write as much as I wanted in these last six months on the blog.
+
+However, today I just released gmid 2.0.  It's out finally!  I'm a bit excited since I've been meaning to release it for more than a year.
+
+What to say... looking forward to hacking on gmid 2.1!

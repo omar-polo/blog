@@ -1,0 +1,85 @@
+I haven't posted in a long time here, this is actually the first entry of the 2023... woops!
+
+Truth to be told, there are various things I'd like to write about but not  enough time, so I thought to copy the big guys and write a "Status Update" post myself.  It's more like sending a message in a bottle though.
+
+So, lots of stuff, right?  Let's go!
+
+
+## OpenSMTPD-portable
+
+Last month I started to help in the OpenSMTPD-portable repository.  It was starting to rot a bit, lagging behind what we have in base on OpenBSD and accumulating cruft.
+
+Since I use it on both linux and FreeBSD I have some interest in keeping the portable branch working, so... "shut up and hack".  (OpenSMTPD was the first -and only so far- smtp server I've ever used and I don't think I want to learn something else.)
+
+Gilles has been very helpful, and the community too.  Thank you!
+
+We managed to get the 7.3 release done the last 17th and I'm really proud about it.  I hope to be able to release 7.4 (and so on) in sync with OpenBSD again.  The fear of messing up is present of course, as this is the first time I'm directly working on such a big project -- for my standards.
+
+Bringing -portable up-to-date again also had the effect of improving (just by a tiny bit) smtpd itself.  I committed some changes, some very tiny, and other more interesting like the switch from the long-deprecated ECDSA_METHOD to EC_KEY_METHOD, work that was initially done by Gilles in the portable branch.  This last one in particular, as by some kind of butterfly effect, paves the way of the removal of a few vestiges in LibreSSL' libcrypto itself!
+
+After some PR and issues on GitHub we fixed an issue with the filter-rspamd and a diff to change slightly the filter protocol to avoid an ambiguity is in the way.  An issue with truncating some very long lines changed by filters was also committed.
+
+In short, some good hack on OpenSMTPD!
+
+
+## libasr-portable deprecation
+
+asr_run() is one of those OpenBSD' gems.  It's an API in libc to do "hack-less" asynchronous DNS resolving, with an optional libevent integration.
+
+As far as I've understood, this -portable project was created since OpenSMTPD uses asr_run().  After some time eric@ and gilles@ decided that it wasn't worth the effort and started to maintain only the bundled copy in OpenSMTPD.
+
+Unfortunately, this move wasn't properly communicated IMHO, and various distros are still packaging OpenSMTPD with libasr-portable.
+
+In the hope to clear the mess a bit, I've edited the README and the description, and today I've archived the repository after the last issue was moved to the main repo.
+
+Keeping libasr-portable in sync is not only a maintenance burden itself, but it's also generally not worth it.  It introduces various doubts in how to make it portable, the optional libevent integration is an headache from the library POV, and there are details that makes it impossible to use as drop-in replacement of OpenBSD' asr_run(3).
+
+The idea then is to maintain libasr as best as possible as part of OpenSMTPD, so should other -portable project need it they can just steal from there.
+
+
+## gmid 2.0 overhaul
+
+Hacking on OpenSMPTD-portable made myself more accostumed to its internals and in doing so I discovered its privesp crypto engine.  It's marvelous.
+
+The idea is to keep the TLS private keys in a separate process (the "privsep crypto engine"), and having the listeners processes (the more at risk of being attacked) asking via IPC the crypto process to sign stuff on their behalf during the TLS handshake.
+
+It makes virtually impossible to leak the private keys at the cost of one synchronous IPC during the TLS handshake.  Big win in my book.
+
+I was really excited about the idea and couldn't help myself not trying to implement it in gmid too.  So I started a bit of an overhaul in how gmid manages its processes, implementing a real privsep by the way, and then adding a privsep crypto engine.
+
+So far the crypto engine works only on OpenBSD, but it's a start.
+
+I still have a few things I'd like to implement but the 2.0 is closer than before.  Still no ETA though.
+
+
+## Game of Trees
+
+Got is probably the project I enjoy contributing most.  However, since the last release I haven't done much interesting things.
+
+Stefan noticed a bug in gotwebd that made it traverse *all* the commits when it should only load one, and fixing it has made the "diff" page responsive again.
+
+I decided to scratch an itch and revisit all the strlen() usages in the tree and killed some.  Nothing performance-critical, but the code is a tad nicer now.  The fun thing is that I thought I was just bothering the others in doing such minutiae, but it seems I wasn't the only one triggered by it, and I was even thanked in private after the change.  Wooo-hooo!
+
+gotadmin cleanup learned to remove redundant pack files too now, something that previously required git-gc(1).  gotadmin pack is still too slow for me, so on my mirror I'll still keep running git-repack, but I think this is a welcomed addition.
+
+Lastly, I just committed a diff to rework how gotd tracks its children.  Nothing fancy, but it's slightly better than before.  Again, step by step.
+
+I have two "big" items in my TODO that I'd like to contribute: initial SHA256 support and HTTPS fetch.  Both are interesting and useful but demanding in time.
+
+
+## Secret Project
+
+Back in March I've started to work on a new side-project.  It's an implementation of a syncplay client, a program that syncs the video player across the network, allowing multiple people to watch the same thing at once.
+
+I think I'm at 90% of a first version, lacking only the tracking of the other people status (so that it pauses when someone else pauses), but since it's a side-project it got its time stolen by other stuff.
+
+It grew out of the frustration with porting a dependency of syncplay, a mess of C++, python, cmake, NIH & co.  For real, who wraps CMake duplicating its logic with hundreds of lines of python crap?  (add to the mix that I don't enjoy hacking on Python, C++ nor CMake and you probably guess why I started to write my own ;-)
+
+The goal would be to write also the server implementation, but having a client 0.1 released would already be great.
+
+I'm particularly happy about this as it's 100% public-domain code --truly free software-- it's my first "real" experience with fossil and I just like the code I wrote so far.
+
+
+## Reading
+
+I was gifted "The Three Body Problem" and I'm loving it so far.  Haven't read much yet due to ENOTIME.  It's also my first reading in a while, so I figured it was worth the mention.

@@ -1,0 +1,83 @@
+This post is a follow-up on the previous announcement of gmid 2.0 dropping CGI script support.  I felt that I had to explain more accurately why I decided to drop that feature and what are the options available and what I can try to do before finalizing the release.
+
+One of my favourites talk is "Simple Made Easy" by Rich Hickey.
+
+=> https://www.infoq.com/presentations/Simple-Made-Easy/ "Simple Made Easy", a talk by Rich Hickey
+
+Without going too much into what the talk is about, although I recommend to watch it sometimes, it makes a good point in distinguish two concepts that are often mistakenly confused:
+
+* simple is the opposite of complex, it means that there are "few" things in it.
+* easy means that it's "at hand", it's closer to our comfort-zone.
+
+These two can overlap, but in general are two different dimensions.
+
+Here I'll try to make a point that supporting CGI scripts is simple, yet not easy, and that sometimes the "easiness" is just as important as the "simplicity".  It doesn't mean that I'm happy with the status quo, it's just a description of a compromise to be made.
+
+##  Simple
+
+It's trivial to demonstrate how writing a CGI script is simple.  Here's an example in C
+
+```a hello world CGI script for Gemini written in C
+#include <stdio.h>
+
+int
+main(void)
+{
+	puts("20 text/gemini\r");
+	puts("Hello, world!");
+	return (0);
+}
+```
+
+Compile, drop it somewhere and you're done.  Can't be simpler than this.
+
+## Not easy
+
+Regardless of the simplicity, it's not closer to the "things at hand", namely:
+
+* chroots
+* sandboxes
+* (ab)use of the system' resources
+
+Running a CGI script in a chroot is quite a pain to be honest.  It restricts the number of options you have available, e.g. no scripting languages such as sh, perl, python, ... unless you want to install those in the chroot which kind of defeats the point, and requires static linking.
+
+Statically linked executable are not without their drawbacks.  The biggest one in my opinion is that they have a less random address space: dynamically linked executable have their text and needed libraries loaded in memory at random offsets, statically linked executable have only their contents being mapped at a random offsets.
+
+Supporting CGI scripts also has issues with sandboxing methodologies.  Not all of them allow to exec other programs and even if they allow so (e.g. OpenBSD pledge) you need a much more wide sandbox.
+
+This is worrying since a malicious user could trick the server into executing stuff that wasn't intended to be so.  It's terrifying in the case a chroot is not in place or has too many things in it.
+
+Finally, there's the point of (ab)using the system resource.  Even in a space as small as Gemini, it could happen for a bot or two to go out of control and trash your server.  This is the weaker of all the points I've mentioned so far since it can be avoided by other means, such as rate limiting connections or CGI scripts executions in your server.
+
+## How gmid got away with it
+
+gmid had a gigantic hack to spawn CGI scripts while being sandboxed with capsicum, pledge or seccomp/landlock.  It used a separate process, not sandboxed, to run the CGI scripts and pass back a pipe to its output.
+
+As I was wondering in the previous post, what's the point of a sandbox that can be so easily bypassed?
+
+## Not as simple but still easy
+
+I've found that working with FastCGI is not bad.  I've written several programs that speak FastCGI and sit behind httpd(8) or gmid.
+
+There's more code involved, FastCGI is rather simple but not as simple as just reading a few environment variables and printing stuff to standard output, but allows to a more fine-grained control over the application.
+
+A FastCGI application can be sandboxed independently, have a different chroot, be ran in a different host, and is generally more flexible than a CGI script.  It can, for example, open just one connection to a database for its whole lifetime, or decide to fork and re-exec itself for every request.
+
+Finally, there are programs like fcgiwrap or slowcgi that talk FastCGI but run a CGI script under the hood.
+
+(All of this is not strictly related to FastCGI, I believe that the same benefits apply to similar protocols like SCGI, but I only had experience with the former, not the latter.)
+
+## That bad taste in my mouth
+
+Said all of this, I'm still not happy with the situation.  Although I'm happy of dropping that ugly hack, I know I'm making the life harder for some people and that I don't have an easy workaround.
+
+Setting up one location+fastcgi stanza per script in some setups is ridiculous, and way more hard than just dropping an executable in a directory.
+
+This is in part a feature, depending on how you see it, as you have to be more explicit in the configuration about the things you want to run, but it's a nightmare in many other setups.
+
+At the moment I don't have an answer.  I think it could be possible for gmid to detect executable files and use fastcgi implicitly.  This way it would still be required to install fcgiwrap or slowcgi (these at least don't need to be configured, just started) but otherwise it shouldn't require big changes to the configuration.  To be clear, this is all speculation.
+
+One of the reason for announcing the alpha of 2.0 was because I wanted to have a feedback on how folks are using gmid, how much they're impacted by the changes and have the time to make the migration easier before finalizing the version.  I'm grateful for the feedback I got so far, and it also made me think again about dropping the CGI facility altogether (and a few other details regarding the next release.)
+
+One last point: why I'm so worriead about this 2.0?  Because I don't like to do many breaking changes, and I hope to fix most of the design errors of previous versions at once here, so that I don't have to waste everyone's time later on again.
+

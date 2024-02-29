@@ -1,0 +1,168 @@
+It took quite some time.  Last September I was thinking I would have 2.0 ready for December, and here we are.  Better late than never I guess.
+
+This time I decided to do a round of public testing before releasing 2.0 itself.
+
+I decided to call this an "alpha" rather than a first RC to better convey the idea that I'm still open to change (even in incompatible ways) the new feature set before the release.  It works perfectly for me, but since it's used by other people as well I felt the need to wait a bit and gather some feedback.
+
+Some blabbering on historic things follows, feel free to scroll down to "breaking changes and new features".
+
+## looking back
+
+gmid was the first daemon I ever wrote, and I think it shows when you consider some of its quirks (not in the good sense.)  Overall, however, I think that looking at the history of how the tool grew could be educational, or at least it reflect a personal growth.
+
+The first version, tagged 3 years ago, was a single file, rocking at 680 lines.  No configuration, no virtual hosts, no anything.
+
+Now, at its 2.0 it sits at 10662 lines (counting blanks, comments etc) and is one of the more featureful Gemini servers out there.  Or so I think based on a quick look, I haven't ever run anything other than gmid so can't say for sure.  Writing the server was my introduction to the protocol after all.
+
+## something has to be left behind
+
+The key point for the 2.0 release was to rethink the privsep design.
+
+"privsep" is a word you may see a lot when reading description of many OpenBSD tools, and since I took a lot of inspiration from OpenBSD, it's something I often use as well.  In this case, it means breaking the set of "things" that a daemon does in several processes that can work at different privileges and be independently tightly sandboxed.  These processes can still talk among themselves using some kind of IPC, which is the imsg framework usually on OpenBSD.
+
+=> https://man.openbsd.org/imsg_init.3#DESCRIPTION imsg_init(3)
+
+In gmid 1.8 the processes were:
+
+* the main process, keeping root rights, that forks the "specialized" children processes
+* the logger process to log requests
+* the listener process that accepts and serves Gemini requests
+* the executor (AKA The Big Hack) to run CGI scripts and connect to FastCGI applications
+
+The "executor" process was a way to break out of the sandbox imposed by capsicum(4) on FreeBSD and seccomp(2) on Linux.
+
+=> https://man.freebsd.org/cgi/man.cgi?query=capsicum&apropos=0&sektion=0&manpath=FreeBSD+13.2-RELEASE+and+Ports&arch=default&format=html capsicum(4)
+=> https://manned.org/seccomp.2 seccomp(2)
+
+I've realized that having a daemon listening to the internet 24/7 that can execute random files does not make me sleep well at night.
+
+What's the point of a sandbox if it can be easily bypassed?  CGI script had to go, I don't want code in gmid that can be used to execute almost everything.
+
+## homogeneity is not good
+
+There is another quite big issue with how gmid 1.x does privsep: it does not fork() + exec(), it just fork()s.
+
+While this doesn't seem like a big deal, it means that every process has the same initial memory layout, so if an attacker manages to learn something about it in one process, they can apply that knowledge to the other processes.  It's bad, very bad, more bad than it sounds.
+
+fork() + re-exec itself allows to have completely fresh and random memory layout for every process.
+
+## security measures ought to be accessible
+
+I wrote a bit about sandboxing techniques before but I failed to convey how much of a pain was to support seccomp.
+
+=> https://www.omarpolo.com/post/gmid-sandbox.html Comparing sandboxes techniques
+
+Every few months I got a mail about gmid not working on some fancy arch and libc combination I haven't tested.  The reason?  Some code in libc or libevent used an innocuous system call I didn't know about and that killed the daemon.
+
+Trust me, guiding people via email to debug these kinds of issues is not fun.  Not for them, and not for me.  It involves changing the code to enable some diagnostic, grepping header files to get a name out of a syscall number and then patching a BPF script.
+
+seccomp is not maintainable and leads to some of the most horrible code I ever had to write.  It had to go as well.
+
+## the current picture
+
+Now gmid has a better privsep setup.  Every sub-process is re-exec'ed once at startup and even the configuration is passed via IPC.  The Big Hack was removed, together with the option of directly running CGI scripts.
+
+On the sandboxing side, capsicum(4) and seccomp(2) were dropped.  Now gmid only uses a chroot if configured to, pledge(2) on OpenBSD and landlock on Linux.
+
+I've taken the privsep design a step further and copied a brilliant idea from OpenSMTPD and relayd(8): a privsep crypto engine.
+
+Long story short, the processes that handle Gemini requests, those who are listening to the internet all day long, don't have access to the TLS private keys at all.  Instead, they're loaded in a separate process that only signs some bits on the behalf of the other processes.  The cost is one synchronous IPC call per client connection, and the benefit is that it's impossible to disclose the TLS private keys exploiting bugs in gmid, libevent, openssl or libtls.
+
+## breaking changes and new features
+
+My guideline on gmid is to not break things that were introduced in previous releases.  You can only go so far without dropping some of the baggage you keep for bad previous changes, so the 2.0 is a breaking point.  However, I strived to keep existing configuration still working where possible.
+
+The `cgi' and `entrypoint' rules were removed.  This is the only breaking change that requires some work.  If you relied on these, a separate program like slowcgi(8) or fcgiwrap is now needed.
+
+slowcgi(8) is part of the OpenBSD default installation, I made a portable version that should run on most systems.  fcgiwrap is another popular solution.
+
+=> https://man.openbsd.org/slowcgi.8		slowcgi(8)
+=> https://codeberg.org/op/slowcgi-portable	slowcgi-portable
+=> https://github.com/gnosek/fcgiwrap		fcgiwrap
+
+These all works by talking with a daemon (gmid for the scope of this, but it usually is httpd(8) or nginx) via FastCGI, a binary protocol, and executing CGI scripts on the behalf of the server itself.
+
+So, let's say you were serving a CGI script at "/cgi/gempkg/", with FastCGI the configuration now would be
+
+```
+server "example.com" {
+	# ...
+	location "/cgi/gempkg/*" {
+		fastcgi {
+			socket "/run/slowcgi.sock"
+			param SCRIPT_NAME = "/cgi/gempkg"
+		}
+	}
+}
+```
+
+One of the most confusing things about gmid was how the daemon was able to run config-less with the right mix of flags.  I've split this use-case in a separate program, so it's easier to document and less confusing.  gemexp serves a directory over Gemini for quick tests on localhost, gmid always requires a configuration.
+
+Another minor breaking change is the removal of the previously deprecated options `mime' and `map'.
+
+It's finally possible to specify where gmid should listen on using the aptly named `listen on' directive in the `server' stanza.  This replaces the old `ipv6' and `port' global options and will be mandatory in a future release, for now gmid only warns when it's not present.  Defining a server now looks like this:
+
+```
+server "example.com" {
+	listen on * port 1965 # the port is actually optional
+	cert "/path/to/cert"
+	key "/path/to/key"
+}
+```
+
+The logging was finally revamped.  I was postponing since 1.7, but now it's finally possible to log (also) to a file, change the logging style and the syslog(3) facility.  There's a new top-level directive `log' that looks like this:
+
+```
+log {
+	# log requests also to a file
+	access "/logs/access.log"
+
+	# mimic Apache httpd logging format
+	style common
+
+	# use the LOG_LOCAL0 syslog facility
+	syslog facility local0
+}
+```
+
+There is still more that can be done to improve the logging, but this is a long overdue step.
+
+While gmid doesn't know how to speak titan yet, I've added a small utility, titan(1), that implements the client-side of the protocol.  It's a preparatory step since I plan to add support for titan in a subsequent release (2.1).
+
+gg (gemini get) now warns when the server doesn't use the TLS close notify.  I hoped to make it a hard error, but there are still too many servers out there (even operated by long-known members of the community) that don't properly close the connections.
+
+There are more minor improvements, like a better configtest mode, but there's a ChangeLog file for that.  Here I wanted to provide an overview of the update.
+
+## an excursus on SCRIPT_NAME and PATH_INFO
+
+When your server support CGI scripts it's trivial to get right the split between SCRIPT_NAME and PATH_INFO.  On FastCGI it's not that easy.  OpenBSD' httpd does some crawling in the filesystem to guess it that's too fragile in my experience, while nginx has a regexp-based `fastcgi_split_path_info'.
+
+I don't like very much neither approaches, even if I slightly prefer nginx approach more, so I decided to leave the matter up to who writes the configuration.  gmid assumes SCRIPT_NAME is "/" unless the configuration tells otherwise, and compute PATH_INFO by stripping SCRIPT_NAME away from the start of the request path.
+
+## OK, where do I get it?
+
+I haven't done any proper release yet, I've just changed the version string to say "alpha1".  It's available on all the usual places:
+
+=> https://git.omarpolo.com/?action=summary&path=gmid.git	Git repository
+=> https://codeberg.org/op/gmid					Codeberg mirror
+=> https://github.com/omar-polo/gmid				GitHub mirror
+
+To build, once you have the dependencies, it's the usual
+
+```
+$ ./configure
+$ make
+$ doas make install
+```
+
+Except for the changes discussed previously, the "gmid quickstart guide" is still relevant.
+
+=> https://gmid.omarpolo.com/quickstart.html gmid quickstart guide
+
+Keep in mind that the manpages on the website won't be updated until gmid 2.0 is officially released.
+
+I don't plan to do further code changes unless it is to address some feedback from the community.  I also don't have a clear ETA for the release, but it'll take at least a couple of week of wider testing.  Then we'll see, depending on the feedback.
+
+Please don't refrain from report every issues, as small as they could be, via email or by opening an issue on Codeberg or GitHub.  I'm interested in knowing if it was a pain upgrade the configuration, if it was too difficult to migrate a certain configuration, how the new features work and generally the encountered difficulties in the migration.
+
+Thanks for reading!
