@@ -1,3 +1,5 @@
+2024/02/29 edit: fixed the sample config file: unix_socket_name changed to listen on socket.
+
 The latest release of the Game of Trees control version systems includes a brand-new repository web interface: gotwebd.  It was written by tracey@ and it's going to replace the "old" CGI script, also written by him.
 
 => https://git.omarpolo.com/	My gotwebd instance
@@ -47,7 +49,7 @@ server "git.example.com" {
 	site_name "op projects"
 
 	# listen on this socket
-	unix_socket_name "/var/run/gotwebd.sock"
+	listen on socket "/var/run/gotwebd.sock"
 	# or on a local port
 	#listen on localhost port 9000
 }
