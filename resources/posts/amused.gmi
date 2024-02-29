@@ -1,10 +1,12 @@
-=> gemini://it.omarpolo.com/articoli/amused.gmi This is a partial and unaccurate translation of a post with the same title I published the other day on my Italian capsule.
+2024/02/29 edit: fixed a few typos and links, improved the markup.
+
+=> gemini://it.omarpolo.com/articoli/amused.gmi This is a partial and inaccurate translation of a post with the same title I published the other day on my Italian capsule.
 
 Moved by curiosity I wrote a small music player.  The ideas was to see if it was possible to decode the audio files in a tightly sandboxed process.
 
-TL;DR it was an error.  I ended up writing a thing I like, now I have to maintain it!
+TL;DR: it was an error.  I ended up writing a thing I like, now I have to maintain it!
 
-=> //git.omarpolo.com/amused amused
+=> https://git.omarpolo.com/?action=summary&path=amused.git amused
 
 It’s a small program that plays music on the background and is commanded by a really simple command line interface:
 
@@ -35,7 +37,7 @@ Pretty cool if I can say so.  At this point I had a program lying around that I 
 
 Well, it’s not difficult to do, on the contrary, but do I need to code these features myself?  (I think stuff like this more and more recently)
 
-Then I had a “unix revelation”: I could use the shell!
+Then I had a “UNIX revelation”: I could use the shell!
 
 ```
 $ amused show > list
@@ -49,20 +51,26 @@ it works but it’s quite painful to type.  I can do better.  I can use pipes!
 $ amused show | sort -R | amused load
 ```
 
-many many thanks to Douglas McIlroy for the idea of the pipes!  dont-know-how-many-years after they’re still relevant.
+many thanks to Douglas McIlroy for the idea of the pipes!  don’t-know-how-many-years after they’re still relevant.
 
 To be honest being able to use the pipes like that required a bit of hacking on the client to avoid races: ‘load’ used to be an alias for ‘flush’ (erase the playlist) and one ‘add’ per file.  If the ‘load’ command were executed before ‘show’ due to the random nature of pipelines and timing, well, it wouldn’t end well.  However, making it “race condition free” was actually pretty simple to do and made the ‘load’ command more robust.
 
 Some more examples to give the idea of how it composes well:
 
+* remove all of Guccini’ song from the current queue.
 ```
-$ # remove all Guccini’ song
 $ amused show | grep -vi guccini | amused load
-$ # load the dream theater discography
-$ find ~/music/dream-theater -iname \*.flac | amused load
-$ # select a song with fzf
+```
+* load the Dream Theater discography
+```
+$ find ~/music/dream-theater | amused load
+```
+* select a song with fzf
+```
 $ amused jump "$(amused show | fzf)"
-$ # ...or with dmenu!
+```
+* ...or with dmenu!
+```
 $ amused jump "$(amused show | dmenu)"
 ```
 
@@ -83,7 +91,7 @@ I’m talking about libvorbisfile, libopusfile, libflac and libmad.  Out of thes
 
 Sure, these libraries have all the functions carefully described in a web page, but what’s lacking is some sort of global picture.  (Plus, the example code was awful for the most part.)
 
-Fortunately they’re not too hard to use and one can actually write a decoder in a couple of hours starting from knowing nothing.  However, I’d like to do a special mention for libflac: it beats openssl in my personal list of “worst api naming ever”.
+Fortunately they’re not too hard to use and one can actually write a decoder in a couple of hours starting from knowing nothing.  However, I’d like to do a special mention for libflac: it beats openssl in my personal list of “worst API naming ever”.
 
 I forgot one thing: amused has only OpenBSD as a target.  It’s the only OS I use and I only “know” how to use sndio, so…  but I could try to make a portable release eventually.  It’s a pretty stable program which I guess it’s already pretty much done, modulo bugs and eventually adding support for more audio formats.
 
