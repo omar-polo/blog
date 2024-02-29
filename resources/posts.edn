@@ -1,5 +1,5 @@
 [{:title    "A small template engine for C"
-  :short    ""
+  :short    "safe {{interpolation}}"
   :slug     "template"
   :date     "2024/02/29"
   :tags     #{:c}
