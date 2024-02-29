@@ -66,6 +66,9 @@
     [:text "Welcome to my gemlog!  Sometimes I remember that I have a blog and post something here.  My main interests are computer science, operating systems (BSDs in particular), programming languages (especially C, Go, LISP in its various incarnations).  I also have an Italian capsule where I write about more casual stuff:"]
     [:link "gemini://it.omarpolo.com" "l'angolo di yumh"]
     [:text ""]
+    [:text "Servicese enabled on this capsule:"]
+    [:link "/cgi/gempkg" "pkg_fcgi: browse the OpenBSD ports tree"]
+    [:text ""]
     [:header-2 "Recent posts"]
     [:text ""]
     (map (partial post-fragment {:title-with-link? true})
