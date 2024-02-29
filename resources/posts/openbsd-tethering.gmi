@@ -1,7 +1,9 @@
+2024/02/29 edit: update the samples to use dhcpleasectl
+
 These days, for various reason, I'm using USB tethering very often.  Enabling it it's not difficult at all, it as simple as
 
 ```
-doas dhclient urndis0
+doas dhcpleasectl urndis0
 ```
 
 But it's tedious.  Especially if you need to do it multiple times per day.  I needed something to save me from filling my shell history of dhclient urndis0.
@@ -30,7 +32,7 @@ case $DEVCLASS in
 3)
     case $DEVNAME in
         # USB tethering
-        urndis*) dhclient $DEVNAME ;;
+        urndis*) dhcpleasectl $DEVNAME ;;
     esac
 esac
 ```
